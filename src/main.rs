@@ -16,6 +16,6 @@ mod tests {
 
     #[test]
     fn internal() {
-        assert_eq!(4, internal_adder(2, 2));
+        assert_eq!(5, internal_adder(2, 2));
     }
 }
