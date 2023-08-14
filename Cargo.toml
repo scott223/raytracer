@@ -9,6 +9,7 @@ edition = "2021"
 assert_approx_eq = "1.1.0"
 log = "0.4.20"
 env_logger = "0.10.0"
+image = "0.24.7"
 
 [dev-dependencies]
 test-log = "0.2.12"

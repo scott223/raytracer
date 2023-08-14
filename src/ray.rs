@@ -1,4 +1,5 @@
 use crate::vec3::Vec3;
+use std::fmt;
 
 #[cfg(test)]
 use assert_approx_eq::assert_approx_eq;
@@ -10,13 +11,22 @@ pub struct Ray {
 }
 
 impl Ray {
-    // Creating a new Ray with a origin and a direction
-    pub fn new (o_val: Vec3, d_val: Vec3) -> Self {
-        
+    // Creating a new Ray with a origin and a direction (normalized)
+    pub fn new(o_val: Vec3, d_val: Vec3) -> Self {
         Ray{
             origin: o_val,
-            direction: d_val,
+            direction: d_val.normalized(),
         }
+    }
+
+    pub fn at(&self, t: f64) -> Vec3 {
+        self.origin + self.direction * t
+    }
+}
+
+impl fmt::Display for Ray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      write!(f, "origin: [{}], direction: [{}]", self.origin, self.direction)
     }
 }
 
@@ -33,11 +43,7 @@ mod tests {
 
         let r = Ray::new(p, q);
 
-        assert_approx_eq!(r.origin.x(), 0.1);
-        assert_approx_eq!(r.origin.y(), 0.2);
-        assert_approx_eq!(r.origin.z(), 0.3);
-        assert_approx_eq!(r.direction.x(), 0.2);
-        assert_approx_eq!(r.direction.y(), 0.3);
-        assert_approx_eq!(r.direction.z(), 0.4);
+        assert_approx_eq!(r.origin, p);
+        assert_approx_eq!(r.direction, q.normalized());
     }
 }
