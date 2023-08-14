@@ -47,10 +47,19 @@ impl Vec3 {
         self.distance(&Vec3::new(0.0, 0.0, 0.0))
     }
 
+    pub fn length_squared(&self) -> f64 {
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
     // fn abs
     // returns absolute value of vector, which is the same as its length (distance from 0.0)
     pub fn abs(&self) -> f64 {
         self.length()
+    }
+
+    // vector dot multiplication
+    pub fn dot(&self, w: &Vec3) -> f64 {
+        self.x * w.x + self.y * w.y + self.z * w.z
     }
 
     // fn normalized
@@ -160,6 +169,12 @@ impl Div<f64> for Vec3 {
     }
 }
 
+impl PartialEq for Vec3 {
+    fn eq(&self, w: &Vec3) -> bool {
+        self.x == w.x() && self.y == w.y() && self.z == w.z()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_approx_eq::assert_approx_eq;
@@ -251,6 +266,13 @@ mod tests {
         
         let z: Vec3 = Vec3::new(0.0,0.0,0.0);
         assert_approx_eq!(z.length(), 0.0);     
+    }
+
+    #[test_log::test]
+    fn test_dot() {
+        let p = Vec3::new(0.1, 0.2, 0.3);
+        let q = Vec3::new(0.2, 0.3, 0.4);
+        assert_approx_eq!(p.dot(&q), 0.2);
     }
 
     // Test vector normalization

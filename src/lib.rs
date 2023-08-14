@@ -1,6 +1,7 @@
 // Exteral imports
 use std::error::Error;
 use image::{Pixel, Rgb, RgbImage};
+use std::cmp::PartialEq;
 use log::info;
 
 // Specfic imports
@@ -44,19 +45,47 @@ pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
             let ray = Ray::new(pixel_loc, -ray_direction);
 
             log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
-
             let pixel = img.get_pixel_mut(x, y);
-            *pixel = image::Rgb([195,31,31]);
+
+            if (hit_sphere(Vec3::new(0.0,0.0, -3.0), 2.0, &ray)) {
+                *pixel = image::Rgb([195,31,31]);
+                log::trace!("Ray hitted the sphere!");
+            } else {
+                *pixel = image::Rgb([0,0,0]);
+            }
+
         }
     }
 
     img.save("renders/render.png").unwrap();
 
-    //let pixel_00: Vec3 = Vec3::new(1.1, 1.1, -2.0);
-    //let ray_00: Ray = Ray::new(o, pixel_00);
+    log::info!("Finished!");
 
     Ok(())
 }
+
+fn hit_sphere(center: Vec3, radius: f64, ray: &Ray) -> bool {
+    let oc = ray.origin - center;
+    let a = ray.direction.length_squared();
+    let half_b = oc.dot(&ray.direction);
+    let c = oc.length_squared() - radius * radius;
+    let dscr = (half_b * half_b) - (a * c);
+
+    if (dscr >= 0.0) {
+        true
+    } else {
+        false
+    }
+}
+
+//bool hit_sphere(const point3& center, double radius, const ray& r) {
+//    vec3 oc = r.origin() - center;
+//    auto a = dot(r.direction(), r.direction());
+//    auto b = 2.0 * dot(oc, r.direction());
+//    auto c = dot(oc, oc) - radius*radius;
+ //   auto discriminant = b*b - 4*a*c;
+ //   return (discriminant >= 0);
+//}
 
 #[cfg(test)]
 mod tests {
