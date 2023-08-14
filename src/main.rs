@@ -1,21 +1,5 @@
 fn main() {
-    println!("Hello, world!");
-}
-
-pub fn add_two(a: i32) -> i32 {
-    internal_adder(a, 2)
-}
-
-fn internal_adder(a: i32, b: i32) -> i32 {
-    a + b
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn internal() {
-        assert_eq!(5, internal_adder(2, 2));
-    }
+    env_logger::init();
+    log::info!("Program started");
+    let _ = raytracer::render();
 }
