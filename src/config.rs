@@ -1,4 +1,6 @@
 use crate::vec3::Vec3;
+use crate::sphere::Sphere;
+
 use log::info;
 
 pub struct Config {
@@ -9,6 +11,7 @@ pub struct Config {
     pub viewport_v: f64,
     pub focal_length: f64,
     pub camera_center: Vec3,
+    pub spheres: Vec<Sphere>,
 }
 
 impl Default for Config {
@@ -32,6 +35,10 @@ impl Default for Config {
             viewport_v: vv as f64,
             focal_length: 1.0,
             camera_center: Vec3::new(0.0, 0.0, 0.0),
+            spheres: vec![
+                Sphere::new(Vec3::new(0.0, 0.0, -5.0),2.0),
+                Sphere::new(Vec3::new(2.0, -3.0, -5.0),1.0),
+            ],
         }
     }
 }

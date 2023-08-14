@@ -1,9 +1,6 @@
 use crate::vec3::Vec3;
 use std::fmt;
 
-#[cfg(test)]
-use assert_approx_eq::assert_approx_eq;
-
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
     pub origin: Vec3,
@@ -22,6 +19,16 @@ impl Ray {
     pub fn at(&self, t: f64) -> Vec3 {
         self.origin + self.direction * t
     }
+}
+
+pub struct HitRecord {
+    pub t: f64,
+    pub point: Vec3,
+    pub color: image::Rgb<u8>,
+}
+
+pub trait Hittable {
+    fn hit(&self, ray: &Ray) -> Option<HitRecord>;
 }
 
 impl fmt::Display for Ray {

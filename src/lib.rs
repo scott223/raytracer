@@ -1,15 +1,17 @@
 // Exteral imports
 use std::error::Error;
 use image::{Pixel, Rgb, RgbImage};
-use std::cmp::PartialEq;
 use log::info;
+use ray::HitRecord;
 
 // Specfic imports
 mod vec3;
 mod ray;
+mod sphere;
 pub mod config;
 use crate::vec3::Vec3;
-use crate::ray::Ray;
+use crate::ray::{Ray, Hittable};
+use crate::sphere::Sphere;
 use crate::config::Config;
 
 pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
@@ -23,7 +25,7 @@ pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
     let pixel_delta_u: Vec3 = viewport_u / (c.img_width as f64);
     let pixel_delta_v: Vec3 = viewport_v / (c.img_height as f64);
 
-    log::info!("pixel_delta_u: {}, pixel_delta_v: {}", pixel_delta_u.x(), pixel_delta_v.y());
+    log::info!("pixel_delta_u: {:.5}, pixel_delta_v: {:.5}", pixel_delta_u.x(), pixel_delta_v.y());
     
     // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
     let viewport_upper_left = c.camera_center - Vec3::new(0.0,0.0,c.focal_length) - viewport_u/2.0 - viewport_v/2.0;
@@ -43,49 +45,51 @@ pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
             let ray_direction = pixel_loc - c.camera_center;
             
             let ray = Ray::new(pixel_loc, -ray_direction);
-
             log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
+
             let pixel = img.get_pixel_mut(x, y);
 
-            if (hit_sphere(Vec3::new(0.0,0.0, -3.0), 2.0, &ray)) {
-                *pixel = image::Rgb([195,31,31]);
-                log::trace!("Ray hitted the sphere!");
-            } else {
-                *pixel = image::Rgb([0,0,0]);
-            }
+            *pixel = ray_color(&c, &ray);
 
         }
     }
 
     img.save("renders/render.png").unwrap();
-
     log::info!("Finished!");
-
     Ok(())
+
 }
 
-fn hit_sphere(center: Vec3, radius: f64, ray: &Ray) -> bool {
-    let oc = ray.origin - center;
-    let a = ray.direction.length_squared();
-    let half_b = oc.dot(&ray.direction);
-    let c = oc.length_squared() - radius * radius;
-    let dscr = (half_b * half_b) - (a * c);
+fn ray_color(c: &Config, r: &Ray) -> image::Rgb<u8> {
 
-    if (dscr >= 0.0) {
-        true
-    } else {
-        false
+    let hits = trace_hits(&c, &r);
+
+    match hits {
+        Some(hit) => {
+            hit.color
+        }
+        None => {
+            image::Rgb([0,0,0])
+        }
     }
 }
 
-//bool hit_sphere(const point3& center, double radius, const ray& r) {
-//    vec3 oc = r.origin() - center;
-//    auto a = dot(r.direction(), r.direction());
-//    auto b = 2.0 * dot(oc, r.direction());
-//    auto c = dot(oc, oc) - radius*radius;
- //   auto discriminant = b*b - 4*a*c;
- //   return (discriminant >= 0);
-//}
+fn trace_hits (
+    c: &Config,
+    r: &Ray,
+) -> Option<HitRecord> {
+
+    let mut hit_list = None;
+
+    //spheres firsts
+    for sphere in &c.spheres {
+        if let Some(hit) = sphere.hit(&r) {
+            hit_list = Some(hit);
+        } 
+    }
+
+    hit_list
+}
 
 #[cfg(test)]
 mod tests {
