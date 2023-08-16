@@ -1,7 +1,6 @@
 // Exteral imports
 use std::error::Error;
-use image::{Pixel, Rgb, RgbImage};
-use log::info;
+use image::{RgbImage};
 use ray::HitRecord;
 
 // Specfic imports
@@ -11,12 +10,9 @@ mod sphere;
 pub mod config;
 use crate::vec3::Vec3;
 use crate::ray::{Ray, Hittable};
-use crate::sphere::Sphere;
 use crate::config::Config;
 
 pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
-    let o: Vec3 = Vec3::new(0 as f64,0 as f64,0 as f64);
-
     // Calculate the vectors across the horizontal and down the vertical viewport edges. this is basically the coordinate of the two corners
     let viewport_u: Vec3 = Vec3::new(c.viewport_u, 0.0, 0.0);
     let viewport_v: Vec3 = Vec3::new(0.0, -c.viewport_v, 0.0);
@@ -37,18 +33,16 @@ pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
     let mut img = RgbImage::new(c.img_width, c.img_height);
     
     // Start the actual render and creating the rays
-
     for x in 0..c.img_width {
         for y in 0..c.img_height {
             
             let pixel_loc = pixel00_loc + (pixel_delta_u * x as f64) + (pixel_delta_v * y as f64);
             let ray_direction = pixel_loc - c.camera_center;
             
-            let ray = Ray::new(pixel_loc, -ray_direction);
+            let ray = Ray::new(pixel_loc, ray_direction);
             log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
 
             let pixel = img.get_pixel_mut(x, y);
-
             *pixel = ray_color(&c, &ray);
 
         }
@@ -66,7 +60,13 @@ fn ray_color(c: &Config, r: &Ray) -> image::Rgb<u8> {
 
     match hits {
         Some(hit) => {
-            hit.color
+            
+            image::Rgb([
+                ((hit.normal.x()+1.0)*0.5*255.0) as u8,
+                ((hit.normal.y()+1.0)*0.5*255.0) as u8,
+                ((hit.normal.z()+1.0)*0.5*255.0) as u8,
+            ]) 
+
         }
         None => {
             image::Rgb([0,0,0])

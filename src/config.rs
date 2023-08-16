@@ -1,8 +1,6 @@
 use crate::vec3::Vec3;
 use crate::sphere::Sphere;
 
-use log::info;
-
 pub struct Config {
     pub ratio: f64,
     pub img_width: u32,
@@ -17,7 +15,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         let r: f64 = 16.0/9.0; //aspect ratio
-        let w: f64 = 400.0; //image width
+        let w: f64 = 800.0; //image width
         let h: u32 = (w/r) as u32; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
 
         let real_r: f64 = w/h as f64; // getting the real ration, which might be slightly off the desired one
@@ -33,11 +31,11 @@ impl Default for Config {
             img_height: h as u32,
             viewport_u: vu as f64,
             viewport_v: vv as f64,
-            focal_length: 1.0,
+            focal_length: 5.0,
             camera_center: Vec3::new(0.0, 0.0, 0.0),
             spheres: vec![
-                Sphere::new(Vec3::new(0.0, 0.0, -5.0),2.0),
-                Sphere::new(Vec3::new(2.0, -3.0, -5.0),1.0),
+                Sphere::new(Vec3::new(0.0, 0.0, -25.0), 2.0),
+                Sphere::new(Vec3::new(2.0, -2.0, -18.0), 1.0),
             ],
         }
     }
