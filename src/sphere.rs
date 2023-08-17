@@ -7,7 +7,7 @@ use crate::vec3::Vec3;
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
-    pub color: image::Rgb<u8>,
+    pub color: Vec3,
 }
 
 impl Sphere {
@@ -16,7 +16,7 @@ impl Sphere {
         Sphere {
             center: center_val,
             radius: r_val,
-            color: image::Rgb([80, 31, 31]),
+            color: Vec3::new(30.0,30.0,30.0),
         }
     }
 }
@@ -25,7 +25,7 @@ impl Hittable for Sphere {
     // finding the hits for a given ray
     // based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
 
-    fn hit(&self, ray: &Ray) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let l = ray.origin - self.center;
         let a = ray.direction.dot(&ray.direction);
         let b = 2.0 * ray.direction.dot(&l);
@@ -54,15 +54,17 @@ impl Hittable for Sphere {
                 second_root
             };
 
-            let p = ray.at(nearest_root); //we dont need to find the solution with the discrimant, but can just ask the ray where it was at a given t
-            let n = p - self.center;
-
-            return Some(HitRecord {
-                t: nearest_root,
-                normal: n.normalized(),
-                point: p,
-                color: self.color,
-            });
+            if nearest_root < t_max && nearest_root > t_min {
+                let p = ray.at(nearest_root); //we dont need to find the solution with the discrimant, but can just ask the ray where it was at a given t
+                let n = p - self.center;
+    
+                return Some(HitRecord {
+                    t: nearest_root,
+                    normal: n.normalized(),
+                    point: p,
+                    color: self.color,
+                });
+            }
         }
         None // no hits found
     }

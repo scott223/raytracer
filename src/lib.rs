@@ -1,49 +1,39 @@
 // Exteral imports
 use std::error::Error;
-use image::{RgbImage};
+use image::{RgbImage, Pixel};
 use ray::HitRecord;
 
 // Specfic imports
 mod vec3;
 mod ray;
 mod sphere;
+mod camera;
 pub mod config;
 use crate::vec3::Vec3;
 use crate::ray::{Ray, Hittable};
 use crate::config::Config;
+use crate::camera::Camera;
 
 pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
-    // Calculate the vectors across the horizontal and down the vertical viewport edges. this is basically the coordinate of the two corners
-    let viewport_u: Vec3 = Vec3::new(c.viewport_u, 0.0, 0.0);
-    let viewport_v: Vec3 = Vec3::new(0.0, -c.viewport_v, 0.0);
-
-    // spacing between each pixel
-    let pixel_delta_u: Vec3 = viewport_u / (c.img_width as f64);
-    let pixel_delta_v: Vec3 = viewport_v / (c.img_height as f64);
-
-    log::info!("pixel_delta_u: {:.5}, pixel_delta_v: {:.5}", pixel_delta_u.x(), pixel_delta_v.y());
-    
-    // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
-    let viewport_upper_left = c.camera_center - Vec3::new(0.0,0.0,c.focal_length) - viewport_u/2.0 - viewport_v/2.0;
-    let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
-    
-    log::info!("viewport_upper_left: {}, pixel00_loc: {}", viewport_upper_left, pixel00_loc);
+    let camera: Camera = Camera::new(c.img_width, c.img_width/c.img_height);
 
     // Create a new ImgBuf with width: img_width and height: img_y from the config file
-    let mut img = RgbImage::new(c.img_width, c.img_height);
+    let mut img = RgbImage::new(c.img_width as u32, c.img_height as u32);
     
     // Start the actual render and creating the rays
-    for x in 0..c.img_width {
-        for y in 0..c.img_height {
+    for x in 0..c.img_width as i64 {
+        for y in 0..c.img_height as i64 {
             
-            let pixel_loc = pixel00_loc + (pixel_delta_u * x as f64) + (pixel_delta_v * y as f64);
-            let ray_direction = pixel_loc - c.camera_center;
-            
-            let ray = Ray::new(pixel_loc, ray_direction);
-            log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
+            let pixel = img.get_pixel_mut(x as u32, y as u32);
 
-            let pixel = img.get_pixel_mut(x, y);
-            *pixel = ray_color(&c, &ray);
+            let mut color = Vec3::new(0.0,0.0,0.0);
+
+            for i in 0..c.samples {
+                let ray = camera.get_prime_ray(x, y);
+                color = add_clamp(color, ray_color(&c, &ray), c.samples);
+            }
+
+            *pixel = image::Rgb([color.x() as u8, color.y() as u8, color.z() as u8]);
 
         }
     }
@@ -54,36 +44,55 @@ pub fn render(c: &Config) -> Result<(), Box<dyn Error>> {
 
 }
 
-fn ray_color(c: &Config, r: &Ray) -> image::Rgb<u8> {
+fn add_clamp(color: Vec3, color_to_add: Vec3, samples: u8) -> Vec3 {
+    let mut r: f64 = color.x() + color_to_add.x()/((samples) as f64);
+    let mut g: f64 = color.y() + color_to_add.y()/((samples) as f64);    
+    let mut b: f64 = color.z() + color_to_add.z()/((samples) as f64);
 
-    let hits = trace_hits(&c, &r);
+    if r > 255.0 { r = 255.0; }  
+    if g > 255.0 { g = 255.0; }
+    if b > 255.0 { b = 255.0; }
+
+    Vec3::new(r,g,b)
+}
+
+fn ray_color(c: &Config, r: &Ray) -> Vec3 {
+
+    let hits = trace_hits(&c, &r, 0.0, f64::MAX);
 
     match hits {
         Some(hit) => {
             
-            image::Rgb([
-                ((hit.normal.x()+1.0)*0.5*255.0) as u8,
-                ((hit.normal.y()+1.0)*0.5*255.0) as u8,
-                ((hit.normal.z()+1.0)*0.5*255.0) as u8,
-            ]) 
+            let color = Vec3::new(
+                ((hit.normal.x()+1.0)*0.5*255.0) as f64,
+                ((hit.normal.y()+1.0)*0.5*255.0) as f64,
+                ((hit.normal.z()+1.0)*0.5*255.0) as f64,
+            );
+
+            color
 
         }
         None => {
-            image::Rgb([0,0,0])
+            Vec3::new(236.0,37.0,100.0)
         }
     }
 }
 
 fn trace_hits (
-    c: &Config,
-    r: &Ray,
+    config: &Config,
+    ray: &Ray,
+    t_min: f64,
+    t_max: f64,
 ) -> Option<HitRecord> {
 
     let mut hit_list = None;
 
+    let mut closest_so_far: f64 = t_max;
+
     //spheres firsts
-    for sphere in &c.spheres {
-        if let Some(hit) = sphere.hit(&r) {
+    for sphere in &config.spheres {
+        if let Some(hit) = sphere.hit(&ray, t_min, closest_so_far) {
+            closest_so_far = hit.t;
             hit_list = Some(hit);
         } 
     }

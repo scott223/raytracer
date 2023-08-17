@@ -25,11 +25,11 @@ pub struct HitRecord {
     pub t: f64,
     pub point: Vec3,
     pub normal: Vec3,
-    pub color: image::Rgb<u8>,
+    pub color: Vec3,
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
 impl fmt::Display for Ray {
