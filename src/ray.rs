@@ -21,17 +21,6 @@ impl Ray {
     }
 }
 
-pub struct HitRecord {
-    pub t: f64,
-    pub point: Vec3,
-    pub normal: Vec3,
-    pub color: Vec3,
-}
-
-pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-}
-
 impl fmt::Display for Ray {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
       write!(f, "origin: [{}], direction: [{}]", self.origin, self.direction)

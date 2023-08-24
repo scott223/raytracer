@@ -1,5 +1,5 @@
-use crate::ray::HitRecord;
-use crate::ray::Hittable;
+use crate::element::HitRecord;
+use crate::element::Hittable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
@@ -74,7 +74,8 @@ impl Hittable for Sphere {
 mod tests {
     use crate::sphere::Sphere;
     use crate::vec3::Vec3;
-    use crate::ray::{Ray, Hittable, HitRecord};
+    use crate::ray::{Ray};
+    use crate::element::{Hittable};
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]
@@ -88,9 +89,9 @@ mod tests {
     fn test_hit_sphere() {
         let r = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0, 0.0, -1.0));
         let s: Sphere = Sphere::new(Vec3::new(0.0,0.0,-3.0), 1.0);
-        let hit = s.hit(&r);
+        let hit = s.hit(&r, 0.0, f64::MAX);
 
-        if let Some(hit) = s.hit(&r) {
+        if let Some(hit) = s.hit(&r, 0.0, f64::MAX) {
             assert_eq!(hit.t,2.0);
             assert_eq!(hit.color,s.color);
             assert_eq!(hit.point, Vec3::new(0.0,0.0,-2.0));

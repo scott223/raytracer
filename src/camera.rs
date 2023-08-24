@@ -31,7 +31,7 @@ impl Camera {
         let pixel_delta_u: Vec3 = viewport_u / (img_width as f64);
         let pixel_delta_v: Vec3 = viewport_v / ((img_width/sensor_ratio) as f64);   
 
-            // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
+        // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
         let viewport_upper_left = camera_center - Vec3::new(0.0,0.0,focal_length) - viewport_u/2.0 - viewport_v/2.0;
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;     
 

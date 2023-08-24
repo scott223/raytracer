@@ -1,5 +1,6 @@
 use std::ops::{Neg, Add, Sub, Mul, Div};
 use std::fmt;
+use rand::Rng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -17,6 +18,38 @@ impl Vec3 {
             z: z_val,
         }
     }
+
+    pub fn new_random(val_min: f64, val_max: f64) -> Self {
+        Vec3 {
+            x: rand::thread_rng().gen_range(val_min..val_max),
+            y: rand::thread_rng().gen_range(val_min..val_max),
+            z: rand::thread_rng().gen_range(val_min..val_max),           
+        }
+    }
+
+    pub fn new_random_unit_sphere() -> Self {
+        loop {
+            let rv = Vec3::new_random(-1.0,1.0);
+            if rv.length_squared() < 1.0 {
+                return rv
+            }
+        }
+    }
+
+    pub fn new_random_unit_vector() -> Self {
+        Vec3::new_random_unit_sphere().normalized()
+    }
+
+    pub fn new_random_on_hemisphere(normal: &Vec3) -> Self {
+        let rv = Vec3::new_random_unit_vector();
+        if rv.dot(&normal) > 0.0 { //in the same hemisphere
+            return rv 
+        } else {
+            return -rv;
+        }
+    }
+
+
 
     // Exposing the x, y, z coordinates through functions
     pub fn x(&self) -> f64 {
