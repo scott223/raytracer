@@ -60,3 +60,31 @@ impl Hittable for Plane {
         None // no hits found
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::plane::Plane;
+    use crate::vec3::Vec3;
+    use crate::ray::{Ray};
+    use crate::element::{Hittable};
+    use assert_approx_eq::assert_approx_eq;
+
+    #[test_log::test]
+    fn test_create_plane() {
+        let p = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -2.0, 0.0));
+        assert_approx_eq!(p.origin, Vec3::new(0.0, -2.5, 0.0));
+        assert_approx_eq!(p.normal, Vec3::new(0.0, -1.0, 0.0));
+    }
+
+    #[test_log::test]
+    fn test_hit_plane() {
+        let r = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0, 0.0, -1.0));
+        let p = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -2.0, 0.0));
+
+        if let Some(hit) = p.hit(&r, 0.0, f64::MAX) {
+      //      assert_eq!(hit.t,2.0);
+            assert_eq!(hit.color,p.color);
+      //      assert_eq!(hit.point, Vec3::new(0.0,0.0,-2.0));
+        } 
+    }
+}

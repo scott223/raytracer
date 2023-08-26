@@ -19,7 +19,7 @@ impl Default for Config {
         let w: f64 = 800.0; //image width
         let h: f64 = w/r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
 
-        let s: u8 = 16; //samples
+        let s: u8 = 1; //samples
         let m: u8 = 32; //max depth
 
         Config {

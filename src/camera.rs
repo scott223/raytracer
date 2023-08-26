@@ -1,5 +1,4 @@
 use crate::{vec3::Vec3, ray::Ray};
-use std::fmt;
 use rand::Rng;
 
 #[derive(Debug, Clone, Copy)]
@@ -14,14 +13,13 @@ pub struct Camera {
     pub pixel00_loc: Vec3,
 }
 
+// Create a new Camera with a origin and a direction (normalized)
 impl Camera {
-    // Creating a new Camera with a origin and a direction (normalized)
     pub fn new(img_width: f64, sensor_ratio: f64) -> Self {
         let camera_center = Vec3::new(0.0,0.0,0.0);
         let focal_length: f64 = 5.0;
         let vv: f64 = 2.0; // viewport height 
         let vu: f64 = vv * sensor_ratio; // calculating viewport width
-
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges. this is basically the coordinate of the two corners
         let viewport_u: Vec3 = Vec3::new(vu, 0.0, 0.0);
@@ -50,18 +48,19 @@ impl Camera {
 
     }
 
+    // get a prime ray from the camera, add a stochastic x and y component for anti allisasing
     pub fn get_prime_ray(self, x: i64, y: i64) -> Ray {
             let pixel_loc = self.pixel00_loc + (self.pixel_delta_u * x as f64) + (self.pixel_delta_v * y as f64);
             let pixel_sample = pixel_loc + self.pixel_sample_square();
             let ray_direction = pixel_sample - self.camera_center;
             
             let ray = Ray::new(self.camera_center, ray_direction);
-            log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
+            // log::trace!("Ray created for pixel ({}.{}): {}", x, y, ray);
 
             return ray;
     }
 
-    // generate a random point inside the box 
+    // generate a random point inside the box of -0.5 and +0.5 units * pixel size around the pixel center
     pub fn pixel_sample_square(self) -> Vec3 {
         let n1: f64 = rand::thread_rng().gen_range(-0.5..0.5);
         let n2: f64 = rand::thread_rng().gen_range(-0.5..0.5);
@@ -70,5 +69,4 @@ impl Camera {
 
         return point;
     }
-
 }

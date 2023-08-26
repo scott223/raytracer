@@ -21,10 +21,9 @@ impl Sphere {
     }
 }
 
+// finding the hits for a given ray
+// based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
 impl Hittable for Sphere {
-    // finding the hits for a given ray
-    // based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
-
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let l = ray.origin - self.center;
         let a = ray.direction.dot(&ray.direction);
@@ -36,7 +35,7 @@ impl Hittable for Sphere {
         if discr >= 0.0 {
             // there is one or two solutions
 
-            let q: f64 = if (b > 0.0) {
+            let q: f64 = if b > 0.0 {
                 -0.5 * (b + discr.sqrt())
             } else {
                 -0.5 * (b - discr.sqrt())
@@ -89,7 +88,6 @@ mod tests {
     fn test_hit_sphere() {
         let r = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0, 0.0, -1.0));
         let s: Sphere = Sphere::new(Vec3::new(0.0,0.0,-3.0), 1.0);
-        let hit = s.hit(&r, 0.0, f64::MAX);
 
         if let Some(hit) = s.hit(&r, 0.0, f64::MAX) {
             assert_eq!(hit.t,2.0);
