@@ -1,5 +1,6 @@
 use crate::element::HitRecord;
 use crate::element::Hittable;
+use crate::materials::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
@@ -7,16 +8,16 @@ use crate::vec3::Vec3;
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
-    pub color: Vec3,
+    pub material: Material,
 }
 
 impl Sphere {
     // Creating a new Spehere with a center and a radius
-    pub fn new(center_val: Vec3, r_val: f64) -> Self {
+    pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
         Sphere {
-            center: center_val,
-            radius: r_val,
-            color: Vec3::new(30.0,30.0,30.0),
+            center: center,
+            radius: radius,
+            material: material,
         }
     }
 }
@@ -61,7 +62,7 @@ impl Hittable for Sphere {
                     t: nearest_root,
                     normal: n.normalized(),
                     point: p,
-                    color: self.color,
+                    material: self.material,
                 });
             }
         }
@@ -75,23 +76,28 @@ mod tests {
     use crate::vec3::Vec3;
     use crate::ray::{Ray};
     use crate::element::{Hittable};
+    use crate::materials::Material;
+    use crate::materials::Lambertian;
+    use crate::color::Color;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]
     fn test_create_sphere() {
-        let s = Sphere::new(Vec3::new(1.0, 2.0, -1.0), 2.0);
+        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
+        let s = Sphere::new(Vec3::new(1.0, 2.0, -1.0), 2.0, m1);
         assert_approx_eq!(s.center, Vec3::new(1.0, 2.0, -1.0));
         assert_approx_eq!(s.radius, 2.0);
     }
 
     #[test_log::test]
     fn test_hit_sphere() {
+        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
         let r = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0, 0.0, -1.0));
-        let s: Sphere = Sphere::new(Vec3::new(0.0,0.0,-3.0), 1.0);
+        let s: Sphere = Sphere::new(Vec3::new(0.0,0.0,-3.0), 1.0, m1);
 
         if let Some(hit) = s.hit(&r, 0.0, f64::MAX) {
             assert_eq!(hit.t,2.0);
-            assert_eq!(hit.color,s.color);
+            // assert_eq!(hit.color,s.color);
             assert_eq!(hit.point, Vec3::new(0.0,0.0,-2.0));
         } 
     }

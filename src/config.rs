@@ -1,7 +1,11 @@
+use crate::color::Color;
 use crate::vec3::Vec3;
 use crate::sphere::Sphere;
 use crate::plane::Plane;
 use crate::element::Element;
+use crate::materials::Material;
+use crate::materials::Lambertian;
+use crate::materials::Metal;
 
 #[derive(Debug)]
 pub struct Config {
@@ -19,8 +23,13 @@ impl Default for Config {
         let w: f64 = 800.0; //image width
         let h: f64 = w/r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
 
-        let s: u8 = 1; //samples
+        let s: u8 = 4; //samples
         let m: u8 = 32; //max depth
+
+        let m1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
+        let m2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));
+
+        let m3: Material = Material::Metal(Metal::new(Color::new(0.8, 0.7, 0.7)));
 
         Config {
             ratio: r,
@@ -29,10 +38,10 @@ impl Default for Config {
             samples: s,
             max_depth: m,
             elements: vec![
-                Element::Sphere(Sphere::new(Vec3::new(0.0, -1.0, -25.0), 2.0)),
-                Element::Sphere(Sphere::new(Vec3::new(2.0, -2.0, -20.0), 1.0)),
+                Element::Sphere(Sphere::new(Vec3::new(0.0, -1.0, -25.0), 2.0, m3)),
+                Element::Sphere(Sphere::new(Vec3::new(2.0, -2.0, -20.0), 1.0, m1)),
                 //Element::Sphere(Sphere::new(Vec3::new(0.0, -61.0, -35.0), 60.0)),                
-                Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0))),
+                Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), m2)),
             ],
         }
     }

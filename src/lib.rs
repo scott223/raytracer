@@ -2,6 +2,7 @@
 use std::error::Error;
 use image::RgbImage;
 use element::{Hittable, HitRecord};
+use materials::Scatterable;
 
 // Specfic imports
 mod vec3;
@@ -10,6 +11,7 @@ mod sphere;
 mod plane;
 mod color;
 mod element;
+mod materials;
 mod camera;
 pub mod config;
 use crate::vec3::Vec3;
@@ -53,11 +55,34 @@ fn ray_color(c: &Config, r: &Ray, depth: u8) -> Color {
     }
 
     match hits {
-        Some(hit) => { // we hit something, so cast a new ray
-            let new_direction = hit.normal + Vec3::new_random_unit_vector(); //lambertian distribution
-            ray_color(&c, &Ray::new(hit.point,new_direction), depth-1) * 0.3
+        Some(hit) => { // we hit something
+            let scattered = hit.material.scatter(r, &hit);
+
+            match scattered {
+
+                Some((scattered_ray, albedo)) => {
+
+                    match scattered_ray {
+                        Some(sr) => {
+                            let target_color = ray_color(&c, &sr, depth -1);
+                            return Color::new(
+                                albedo.r * target_color.r,
+                                albedo.g * target_color.g,
+                                albedo.b * target_color.b,
+                            );
+                        }
+                        None => albedo
+                    }
+ 
+                }
+
+                None => { // no scattered albedo or ray
+                    return Color::new(0.0,0.0,0.0);
+                }
+                
+            }
         }
-        None => {
+        None => { // we did not hit anything, so we paint the sky
             Color::new(3.0/255.0,165.0/255.0,252.0/255.0) // return sky
         }
     }

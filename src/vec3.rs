@@ -19,6 +19,7 @@ impl Vec3 {
         }
     }
 
+    // creates a random vector between a min and a max value
     pub fn new_random(val_min: f64, val_max: f64) -> Self {
         Vec3 {
             x: rand::thread_rng().gen_range(val_min..val_max),
@@ -27,6 +28,7 @@ impl Vec3 {
         }
     }
 
+    // creates a vector within a unit sphere (lenght < 1.0)
     pub fn new_random_unit_sphere() -> Self {
         loop {
             let rv = Vec3::new_random(-1.0,1.0);
@@ -36,20 +38,25 @@ impl Vec3 {
         }
     }
 
+    // creates a normalized random vector in the unit sphere (initial lenght < 1.0)
     pub fn new_random_unit_vector() -> Self {
         Vec3::new_random_unit_sphere().normalized()
     }
 
+    //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
     pub fn new_random_on_hemisphere(normal: &Vec3) -> Self {
         let rv = Vec3::new_random_unit_vector();
         if rv.dot(&normal) > 0.0 { //in the same hemisphere
-            return rv 
+            return rv; 
         } else {
             return -rv;
         }
     }
 
-
+    // checks if the vector is almost zero
+    pub fn near_zero(&self) -> bool {
+        self.x.abs() < f64::EPSILON && self.y.abs() < f64::EPSILON && self.z.abs() < f64::EPSILON
+    }
 
     // Exposing the x, y, z coordinates through functions
     pub fn x(&self) -> f64 {

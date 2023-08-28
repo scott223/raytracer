@@ -1,3 +1,4 @@
+use crate::materials::Material;
 use crate::sphere::Sphere;
 use crate::plane::Plane;
 use crate::vec3::Vec3;
@@ -8,7 +9,7 @@ pub struct HitRecord {
     pub t: f64,
     pub point: Vec3,
     pub normal: Vec3,
-    pub color: Vec3,
+    pub material: Material,
 }
 
 pub trait Hittable {
