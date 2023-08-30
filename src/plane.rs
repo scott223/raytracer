@@ -87,7 +87,7 @@ mod tests {
         let r = Ray::new(Vec3::new(0.0,0.0,0.0),Vec3::new(0.0, 0.0, -1.0));
         let p = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -2.0, 0.0), m1);
 
-        if let Some(hit) = p.hit(&r, 0.0, f64::MAX) {
+        if let Some(_hit) = p.hit(&r, 0.0, f64::MAX) {
       //      assert_eq!(hit.t,2.0);
       //      assert_eq!(hit.material,p.material);
       //      assert_eq!(hit.point, Vec3::new(0.0,0.0,-2.0));

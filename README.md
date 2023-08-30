@@ -4,8 +4,9 @@ Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not ma
 ### Ray tracing features
 - pixel by pixel raytracing
 - various primitives (sphere, plane)
-- various materials (diffuse, ...)
+- various materials (Lambertian, Metal, ...)
 - stochastich anti-alliasing
+- parallel (multi-threaded) rendering
 - shadow acne prevention
 - gamma correction
 - ...

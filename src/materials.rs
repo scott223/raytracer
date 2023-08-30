@@ -34,7 +34,7 @@ impl Lambertian {
 }
 
 impl Scatterable for Lambertian {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
         let mut new_direction = hit_record.normal + Vec3::new_random_unit_vector(); //lambertian distribution
         if new_direction.near_zero() {
             new_direction = hit_record.normal;
@@ -50,11 +50,15 @@ impl Scatterable for Lambertian {
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
     pub albedo: Color,
+    pub fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Color) -> Metal {
-        Metal { albedo }
+    pub fn new(albedo: Color, fuzz: f64) -> Metal {
+        Metal { 
+            albedo,
+            fuzz, 
+        }
     }
 }
 
@@ -64,11 +68,17 @@ fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
 
 impl Scatterable for Metal {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
-        let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal);
-
-        let scattered = Ray::new(hit_record.point, new_direction);
+        // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
+        let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal) + Vec3::new_random_unit_vector() * self.fuzz;
         let albedo = self.albedo;
 
-        Some((Some(scattered), albedo))
+        if hit_record.normal.dot(&new_direction) > 0.0 { 
+            // the reflected ray, including fuzz unit sphere, is outside the material, so return a reflected ray
+            let scattered = Ray::new(hit_record.point, new_direction);
+            Some((Some(scattered), albedo))
+        } else {
+            // return no ray, as the ray is absorbed by the material (due to fuzz factor)
+            Some((None, albedo)) 
+        }
     }
 }
