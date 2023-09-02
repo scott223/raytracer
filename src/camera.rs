@@ -70,3 +70,20 @@ impl Camera {
         return point;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::vec3::Vec3;
+    use crate::camera::Camera;
+    use assert_approx_eq::assert_approx_eq;
+
+    #[test_log::test]
+    fn test_create_camera() {
+        // TODO lots of camera tests
+        let camera: Camera = Camera::new(800.0, 9.0/16.0);
+
+        assert_approx_eq!(camera.camera_center, Vec3::new(0.0, 0.0, 0.0));
+
+    }
+
+}

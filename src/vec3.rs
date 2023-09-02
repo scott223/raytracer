@@ -87,6 +87,8 @@ impl Vec3 {
         self.distance(&Vec3::new(0.0, 0.0, 0.0))
     }
 
+    // fn lenght
+    // calculates the length, squared
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
@@ -97,7 +99,7 @@ impl Vec3 {
         self.length()
     }
 
-    // vector dot multiplication
+    // vector dot multiplication of self with a given vector
     pub fn dot(&self, w: &Vec3) -> f64 {
         self.x * w.x + self.y * w.y + self.z * w.z
     }
@@ -196,7 +198,7 @@ impl Div<Vec3> for Vec3 {
     }
 }
 
-// Devide by a float
+// Devide by a f64
 impl Div<f64> for Vec3 {
     type Output = Vec3;
 
@@ -209,6 +211,7 @@ impl Div<f64> for Vec3 {
     }
 }
 
+// == operator (is equal)
 impl PartialEq for Vec3 {
     fn eq(&self, w: &Vec3) -> bool {
         self.x == w.x() && self.y == w.y() && self.z == w.z()

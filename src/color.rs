@@ -18,7 +18,8 @@ impl Color {
         }
     }
 
-    pub fn divide_by_samples(&self, samples: u8) -> Self {
+    // divides the color by the number of samples
+    pub fn divide_by_samples(&self, samples: usize) -> Self {
         Color::new(
             self.r / samples as f64,
             self.g / samples as f64,

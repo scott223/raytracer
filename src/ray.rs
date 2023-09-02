@@ -7,32 +7,38 @@ pub struct Ray {
     pub direction: Vec3,
 }
 
+// Creating a new Ray with a origin and a direction (normalized)
 impl Ray {
-    // Creating a new Ray with a origin and a direction (normalized)
     pub fn new(o_val: Vec3, d_val: Vec3) -> Self {
-        Ray{
+        Ray {
             origin: o_val,
             direction: d_val.normalized(),
         }
     }
 
+// finds the location of a point on a ray given a t
     pub fn at(&self, t: f64) -> Vec3 {
         self.origin + self.direction * t
     }
 }
 
+// diplay trait for formatting (e.g. println! or log!)
 impl fmt::Display for Ray {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      write!(f, "origin: [{}], direction: [{}]", self.origin, self.direction)
+        write!(
+            f,
+            "origin: [{}], direction: [{}]",
+            self.origin, self.direction
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use assert_approx_eq::assert_approx_eq;
-    use crate::vec3::Vec3;
     use crate::ray::Ray;
-    
+    use crate::vec3::Vec3;
+    use assert_approx_eq::assert_approx_eq;
+
     #[test_log::test]
     fn test_create_ray() {
         let p = Vec3::new(0.1, 0.2, 0.3);
@@ -42,5 +48,15 @@ mod tests {
 
         assert_approx_eq!(r.origin, p);
         assert_approx_eq!(r.direction, q.normalized());
+    }
+
+    #[test_log::test]
+    fn test_ray_at() {
+        let p = Vec3::new(0.0, 0.0, 0.0);
+        let q = Vec3::new(0.0, 0.0, 1.0);
+
+        let r = Ray::new(p, q);
+
+        assert_approx_eq!(r.at(5.0), Vec3::new(0.0, 0.0, 5.0));
     }
 }

@@ -12,8 +12,8 @@ pub struct Config {
     pub ratio: f64,
     pub img_width: f64,
     pub img_height: f64,
-    pub samples: u8,
-    pub max_depth: u8,
+    pub samples: usize,
+    pub max_depth: usize,
     pub elements: Vec<Element>,
 }
 
@@ -23,8 +23,8 @@ impl Default for Config {
         let w: f64 = 1024.0; //image width
         let h: f64 = w/r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
 
-        let s: u8 = 8; //samples
-        let m: u8 = 32; //max depth
+        let s: usize = 64; //samples
+        let m: usize = 32; //max depth
 
         let m1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
         let m2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));

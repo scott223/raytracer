@@ -11,8 +11,8 @@ pub struct Sphere {
     pub material: Material,
 }
 
-impl Sphere {
     // Creating a new Spehere with a center and a radius
+impl Sphere {
     pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
         Sphere {
             center: center,
@@ -27,6 +27,8 @@ impl Sphere {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let l = ray.origin - self.center;
+        
+        // solve the quadratic equation
         let a = ray.direction.dot(&ray.direction);
         let b = 2.0 * ray.direction.dot(&l);
         let c = l.dot(&l) - (self.radius * self.radius);
@@ -44,8 +46,8 @@ impl Hittable for Sphere {
             let first_root: f64 = q / a;
             let second_root: f64 = c / q;
 
-            if first_root < 0.0 && second_root < 0.0 {
-                return None;
+            if first_root < 0.0 && second_root < 0.0 { // only negative solutions
+                return None; 
             }
 
             let nearest_root = if first_root < second_root {
@@ -97,7 +99,6 @@ mod tests {
 
         if let Some(hit) = s.hit(&r, 0.0, f64::MAX) {
             assert_eq!(hit.t,2.0);
-            // assert_eq!(hit.color,s.color);
             assert_eq!(hit.point, Vec3::new(0.0,0.0,-2.0));
         } 
     }

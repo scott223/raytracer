@@ -9,10 +9,12 @@ pub enum Material {
     Metal(Metal),
 }
 
+// trait for a material that scatters
 pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)>;
 }
 
+// linkt the trait implementation to the materials
 impl Scatterable for Material {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
         match self {
@@ -22,20 +24,26 @@ impl Scatterable for Material {
     }
 }
 
+// Lambertian (diffuse) material, that scatters rays in a semi-random direction (lambertian distribution = more concentrated around the normal)
 #[derive(Debug, Clone, Copy)]
 pub struct Lambertian {
     pub albedo: Color,
 }
 
+// create a new Lambertian material
 impl Lambertian {
     pub fn new(albedo: Color) -> Lambertian {
         Lambertian { albedo }
     }
 }
 
+
 impl Scatterable for Lambertian {
+
+    // create a scattered ray, randomized but with a lambartian distribution around the normal
     fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
         let mut new_direction = hit_record.normal + Vec3::new_random_unit_vector(); //lambertian distribution
+        // if the direction is almost zero, scatter to the normal
         if new_direction.near_zero() {
             new_direction = hit_record.normal;
         }
@@ -47,6 +55,7 @@ impl Scatterable for Lambertian {
     }
 }
 
+// Metal material, with a fuzz factor. Metal reflects all rays in a predictable way (normal reflection)
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
     pub albedo: Color,
@@ -62,11 +71,14 @@ impl Metal {
     }
 }
 
+
 fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
     *v - *n * (2.0 * v.dot(n))
 }
 
 impl Scatterable for Metal {
+
+    // create a reflected ray
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
         // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
         let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal) + Vec3::new_random_unit_vector() * self.fuzz;
