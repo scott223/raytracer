@@ -1,5 +1,5 @@
 use crate::{vec3::Vec3, ray::Ray};
-use rand::Rng;
+use rand::{Rng};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
@@ -62,8 +62,10 @@ impl Camera {
 
     // generate a random point inside the box of -0.5 and +0.5 units * pixel size around the pixel center
     pub fn pixel_sample_square(self) -> Vec3 {
-        let n1: f64 = rand::thread_rng().gen_range(-0.5..0.5);
-        let n2: f64 = rand::thread_rng().gen_range(-0.5..0.5);
+        let mut rng = rand::thread_rng();
+
+        let n1: f64 = rng.gen_range(-0.5..0.5);
+        let n2: f64 = rng.gen_range(-0.5..0.5);
 
         let point = Vec3::new(n1*self.pixel_delta_u.x(), n2*self.pixel_delta_v.y(), 0.0);
 
@@ -83,7 +85,5 @@ mod tests {
         let camera: Camera = Camera::new(800.0, 9.0/16.0);
 
         assert_approx_eq!(camera.camera_center, Vec3::new(0.0, 0.0, 0.0));
-
     }
-
 }

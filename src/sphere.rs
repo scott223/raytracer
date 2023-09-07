@@ -4,7 +4,9 @@ use crate::materials::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
-#[derive(Debug, Clone, Copy)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,

@@ -1,8 +1,10 @@
-use std::ops::{Neg, Add, Sub, Mul, Div};
+use std::ops::{Add, Neg, Sub, Mul, Div};
 use std::fmt;
 use rand::Rng;
 
-#[derive(Debug, Clone, Copy)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Vec3 {
     x: f64,
     y: f64,
@@ -225,22 +227,72 @@ mod tests {
 
     // Test creating a new vector with three rows, taking floats as an argument
     #[test_log::test]
-    fn test_create() {
+    fn test_new() {
         let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
         assert_approx_eq!(p.x(), 0.1);
         assert_approx_eq!(p.y(), 0.2);
         assert_approx_eq!(p.z(), 0.3);
 
-        let q = Vec3::new(0.2, 0.3, 0.4);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
         assert_approx_eq!(q.x(), 0.2);
         assert_approx_eq!(q.y(), 0.3);
         assert_approx_eq!(q.z(), 0.4);
     }
 
     #[test_log::test]
+    fn test_new_random() {
+        let p: Vec3 = Vec3::new_random(-1.0, 1.0);
+
+        assert!(p.x() < 1.01 && p.x() > -1.01);
+        assert!(p.y() < 1.01 && p.y() > -1.01);
+        assert!(p.z() < 1.01 && p.z() > -1.01);
+    }
+
+    #[test_log::test]
+    fn test_new_random_unit_sphere() {
+        let p: Vec3 = Vec3::new_random_unit_sphere();
+
+        assert!(p.x() < 1.01 && p.x() > -1.01);
+        assert!(p.y() < 1.01 && p.y() > -1.01);
+        assert!(p.z() < 1.01 && p.z() > -1.01);
+        assert!(p.length() < 1.0);
+    }
+
+    #[test_log::test]
+    fn test_new_random_unit_vector() {
+        let p: Vec3 = Vec3::new_random_unit_vector();
+
+        assert!(p.x() < 1.01 && p.x() > -1.01);
+        assert!(p.y() < 1.01 && p.y() > -1.01);
+        assert!(p.z() < 1.01 && p.z() > -1.01);
+        assert_approx_eq!(p.length(),1.0);
+    }
+
+    #[test_log::test]
+    fn test_new_random_hemisphere() {
+        let n: Vec3 = Vec3::new(0.0, 1.0, 0.0);
+        let p: Vec3 = Vec3::new_random_on_hemisphere(&n); // this is a unit vector with lenght = 1
+
+        assert!(p.x() < 1.01 && p.x() > -1.01);
+        assert!(p.y() < 1.01 && p.y() > -1.01);
+        assert!(p.z() < 1.01 && p.z() > -1.01);
+
+        assert!(p.dot(&n) > 0.0);
+    }
+
+    #[test_log::test]
+    fn test_near_zero() {
+        let n: Vec3 = Vec3::new(0.0, 0.001, 0.0);
+        let p: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+
+        assert!(!n.near_zero());
+        assert!(p.near_zero());
+    }
+
+    #[test_log::test]
     fn test_neg() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = -p;
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = -p;
         assert_approx_eq!(q.x(), -0.1);
         assert_approx_eq!(q.y(), -0.2);
         assert_approx_eq!(q.z(), -0.3);
@@ -248,9 +300,9 @@ mod tests {
 
     #[test_log::test]
     fn test_add() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = Vec3::new(0.2, 0.3, 0.4);
-        let r = p + q;
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
+        let r: Vec3 = p + q;
         assert_approx_eq!(r.x(), 0.3);
         assert_approx_eq!(r.y(), 0.5);
         assert_approx_eq!(r.z(), 0.7);
@@ -258,9 +310,9 @@ mod tests {
 
     #[test_log::test]
     fn test_sub() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = Vec3::new(0.2, 0.3, 0.4);
-        let r = p - q;
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
+        let r: Vec3 = p - q;
         assert_approx_eq!(r.x(), -0.1);
         assert_approx_eq!(r.y(), -0.1);
         assert_approx_eq!(r.z(), -0.1);
@@ -268,9 +320,9 @@ mod tests {
 
     #[test_log::test]
     fn test_mul() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = Vec3::new(0.2, 0.3, 0.4);
-        let r = p * q;
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
+        let r: Vec3 = p * q;
         assert_approx_eq!(r.x(), 0.02);
         assert_approx_eq!(r.y(), 0.06);
         assert_approx_eq!(r.z(), 0.12);
@@ -278,15 +330,14 @@ mod tests {
     
     #[test_log::test]
     fn test_div() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = Vec3::new(0.2, 0.3, 0.4);
-        let r = p / q;
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
+        let r: Vec3 = p / q;
         assert_approx_eq!(r.x(), 0.5);
         assert_approx_eq!(r.y(), 0.6666666666666666);
         assert_approx_eq!(r.z(), 0.3 / 0.4);
     }    
 
-    // Test vector distance
     #[test_log::test]
     fn test_distance() {
         let p: Vec3 = Vec3::new(1.0, 0.0, 5.0);
@@ -298,7 +349,6 @@ mod tests {
         assert_approx_eq!(w.distance(&v), 5.0);        
     }
 
-    // Test vector length
     #[test_log::test]
     fn test_length() {
         let p: Vec3 = Vec3::new(3.0, 1.0, 2.0);
@@ -312,9 +362,21 @@ mod tests {
     }
 
     #[test_log::test]
+    fn test_length_squared() {
+        let p: Vec3 = Vec3::new(3.0, 1.0, 2.0);
+        assert_approx_eq!(p.length_squared(), 14.0);
+        
+        let q: Vec3 = Vec3::new(2.0, 3.0, 6.0);
+        assert_approx_eq!(q.length_squared(), 49.0); 
+        
+        let z: Vec3 = Vec3::new(0.0,0.0,0.0);
+        assert_approx_eq!(z.length_squared(), 0.0);     
+    }
+
+    #[test_log::test]
     fn test_dot() {
-        let p = Vec3::new(0.1, 0.2, 0.3);
-        let q = Vec3::new(0.2, 0.3, 0.4);
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+        let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
         assert_approx_eq!(p.dot(&q), 0.2);
     }
 

@@ -4,7 +4,9 @@ use crate::materials::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
-#[derive(Debug, Clone, Copy)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Plane {
     pub origin: Vec3,
     pub normal: Vec3,
