@@ -7,7 +7,7 @@ use std::io::BufReader;
 fn main() {
     env_logger::init();
     log::info!(
-        "Program started: loading config, camera and scene. Base directory is {:?}",
+        "Program started: loading scene and config from JSON files located in /input. Base directory is {:?}",
         env::current_dir().unwrap()
     );
 
@@ -25,7 +25,7 @@ fn main() {
         File::open("input/config.json").expect("Error reading input/config.json, quitting");
     let config_reader = BufReader::new(config_file);
 
-    // Read the JSON contents of the file as an instance of `Scene`.
+    // Read the JSON contents of the file as an instance of `Config`.
     let config: raytracer::config::Config =
         serde_json::from_reader(config_reader).expect("Error parsing input/config.json, quitting");
 

@@ -15,7 +15,6 @@ pub struct Camera {
 
 // Create a new Camera with a origin and a direction (normalized)
 // this function setts up the viewport, and calculates the location of the upper left pixel (00)
-
 impl Camera {
     pub fn new(config: &Config) -> Self {
         let camera_center: Vec3 = config.camera_center;
@@ -49,14 +48,14 @@ impl Camera {
         );
 
         Camera {
-            viewport_u: viewport_u,
-            viewport_v: viewport_v,
-            focal_length: focal_length,
-            camera_center: camera_center,
-            viewport_upper_left: viewport_upper_left,
-            pixel_delta_u: pixel_delta_u,
-            pixel_delta_v: pixel_delta_v,
-            pixel00_loc: pixel00_loc,
+            viewport_u,
+            viewport_v,
+            focal_length,
+            camera_center,
+            viewport_upper_left,
+            pixel_delta_u,
+            pixel_delta_v,
+            pixel00_loc,
         }
     }
 

@@ -5,20 +5,18 @@ use std::error::Error;
 use std::time::Instant;
 
 // Raytracer imports
+pub mod config;
+
 mod camera;
 mod color;
-pub mod config;
-mod element;
+mod elements;
 mod materials;
-mod plane;
 mod ray;
-mod sphere;
 mod vec3;
 
 use camera::Camera;
 use color::Color;
-use config::Config;
-use config::Scene;
+use config::{Config, Scene};
 use materials::Scatterable;
 use ray::Ray;
 
@@ -111,7 +109,7 @@ fn ray_color(scene: &Scene, config: &Config, ray: &Ray, depth: usize) -> Color {
                             albedo.g * target_color.g,
                             albedo.b * target_color.b,
                         );
-                    }
+                    } // there is no scattered ray
                     None => albedo,
                 },
 

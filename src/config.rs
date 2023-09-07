@@ -1,15 +1,8 @@
 use crate::color::Color;
-use crate::element::HitRecord;
-use crate::element::Hittable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::sphere::Sphere;
-use crate::plane::Plane;
-use crate::element::Element;
-use crate::materials::Material;
-use crate::materials::Lambertian;
-use crate::materials::Metal;
-use crate::materials::Dielectric;
+use crate::elements::*;
+use crate::materials::*;
 
 use serde::{Serialize, Deserialize};
 

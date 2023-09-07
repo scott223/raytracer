@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::element::HitRecord;
+use crate::elements::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
@@ -72,6 +72,7 @@ impl Metal {
         Metal { albedo, fuzz }
     }
 }
+
 // reflect a ray with the same outgoing angle as incoming angle with the normal
 fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
     *v - *n * (2.0 * v.dot(n))
@@ -108,7 +109,6 @@ fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Dielectric {
     pub index_of_refraction: f64,
-
     // there is no albedo defined, as a glass material does not absorb color
 }
 

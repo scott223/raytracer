@@ -13,11 +13,11 @@ pub struct Vec3 {
 
 impl Vec3 {
     // Creating a new vector
-    pub fn new(x_val: f64, y_val: f64, z_val: f64) -> Self {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
         Vec3 {
-            x: x_val,
-            y: y_val,
-            z: z_val,
+            x,
+            y,
+            z,
         }
     }
 

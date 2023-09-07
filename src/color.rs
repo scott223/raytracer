@@ -12,7 +12,11 @@ pub struct Color {
 impl Color {
     // creates a new color
     pub fn new(r: f64, g: f64, b: f64) -> Self {
-        Color { r: r, g: g, b: b }
+        Color { 
+            r,
+            g,
+            b,
+        }
     }
 
     // divides the color by the number of samples
@@ -26,21 +30,11 @@ impl Color {
 
     // returns its own value with max 1.0 and min 0.0
     pub fn clamp(&self) -> Self {
-        let mut r = if self.r > 1.0 { 1.0 } else { self.r };
-        let mut g = if self.g > 1.0 { 1.0 } else { self.g };
-        let mut b = if self.b > 1.0 { 1.0 } else { self.b };
-
-        if r < 0.0 {
-            r = 0.0;
-        }
-        if g < 0.0 {
-            g = 0.0;
-        }
-        if b < 0.0 {
-            b = 0.0;
-        }
-
-        Color::new(r, g, b)
+        Color::new(
+            self.r.min(1.0).max(0.0),
+            self.g.min(1.0).max(0.0),
+            self.b.min(1.0).max(0.0),
+        )
     }
 
     //apply gamma correction (now using power of 2.0, i think this should officially be 2.2)
@@ -167,14 +161,15 @@ mod tests {
 
     #[test_log::test]
     fn test_clamp_color() {
-        let c = Color::new(0.5, 0.4, 0.3);
+        let c = Color::new(0.5, 0.4, -2.3);
         let d = Color::new(0.1, 1.0, 0.1);
         let e = c + d;
+        println!("e: {:?}",e);
         let f = e.clamp();
 
         assert_approx_eq!(f.r, 0.6);
         assert_approx_eq!(f.g, 1.0);
-        assert_approx_eq!(f.b, 0.4);
+        assert_approx_eq!(f.b, 0.0);
     }
 
     #[test_log::test]
