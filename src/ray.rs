@@ -9,14 +9,14 @@ pub struct Ray {
 
 // Creating a new Ray with a origin and a direction (normalized)
 impl Ray {
-    pub fn new(o_val: Vec3, d_val: Vec3) -> Self {
+    pub fn new(origin: Vec3, direction: Vec3) -> Self {
         Ray {
-            origin: o_val,
-            direction: d_val.normalized(),
+            origin: origin,
+            direction: direction.normalized(),
         }
     }
 
-// finds the location of a point on a ray given a t
+    // finds the location of a point on a ray for a given t
     pub fn at(&self, t: f64) -> Vec3 {
         self.origin + self.direction * t
     }

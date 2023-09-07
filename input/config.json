@@ -1,0 +1,12 @@
+{
+  "img_width": 1024.0,
+  "img_height": 576.0,
+  "camera_center": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": -1.0
+  },
+  "focal_length": 6.0,
+  "samples": 2,
+  "max_depth": 32
+}

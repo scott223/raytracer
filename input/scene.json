@@ -1,0 +1,101 @@
+{
+  "elements": [
+    {
+      "Sphere": {
+        "center": {
+          "x": 0.0,
+          "y": -1.0,
+          "z": -25.0
+        },
+        "radius": 2.0,
+        "material": {
+          "Metal": {
+            "albedo": {
+              "r": 0.8,
+              "g": 0.7,
+              "b": 0.7
+            },
+            "fuzz": 0.1
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 5.0,
+          "y": -1.2,
+          "z": -25.0
+        },
+        "radius": 1.0,
+        "material": {
+          "Metal": {
+            "albedo": {
+              "r": 0.2,
+              "g": 0.1,
+              "b": 0.7
+            },
+            "fuzz": 0.3
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": -3.0,
+          "y": -1.25,
+          "z": -23.0
+        },
+        "radius": 1.5,
+        "material": {
+          "Dielectric": {
+            "index_of_refraction": 1.5
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 2.0,
+          "y": -2.0,
+          "z": -20.0
+        },
+        "radius": 1.0,
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.3,
+              "g": 0.3,
+              "b": 0.3
+            }
+          }
+        }
+      }
+    },
+    {
+      "Plane": {
+        "origin": {
+          "x": 0.0,
+          "y": -2.5,
+          "z": 0.0
+        },
+        "normal": {
+          "x": 0.0,
+          "y": -1.0,
+          "z": 0.0
+        },
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.6,
+              "g": 0.7,
+              "b": 0.4
+            }
+          }
+        }
+      }
+    }
+  ]
+}

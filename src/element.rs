@@ -35,5 +35,4 @@ impl Hittable for Element {
             Element::Plane(ref p) => p.hit(ray, t_min, t_max),
         }
     }
-
 }

@@ -1,6 +1,6 @@
-use std::ops::{Mul, Add, AddAssign, Div, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Color {
@@ -10,14 +10,9 @@ pub struct Color {
 }
 
 impl Color {
-
     // creates a new color
     pub fn new(r: f64, g: f64, b: f64) -> Self {
-        Color {
-            r: r,
-            g: g,
-            b: b,
-        }
+        Color { r: r, g: g, b: b }
     }
 
     // divides the color by the number of samples
@@ -29,34 +24,39 @@ impl Color {
         )
     }
 
-    // returns its own value with max 1.0
+    // returns its own value with max 1.0 and min 0.0
     pub fn clamp(&self) -> Self {
-        let r = if self.r > 1.0 { 1.0 } else { self.r };
-        let g = if self.g > 1.0 { 1.0 } else { self.g };
-        let b = if self.b > 1.0 { 1.0 } else { self.b };
+        let mut r = if self.r > 1.0 { 1.0 } else { self.r };
+        let mut g = if self.g > 1.0 { 1.0 } else { self.g };
+        let mut b = if self.b > 1.0 { 1.0 } else { self.b };
 
-        Color::new(
-            r,
-            g,
-            b,
-        )
+        if r < 0.0 {
+            r = 0.0;
+        }
+        if g < 0.0 {
+            g = 0.0;
+        }
+        if b < 0.0 {
+            b = 0.0;
+        }
+
+        Color::new(r, g, b)
     }
 
-    //apply gamma correction
+    //apply gamma correction (now using power of 2.0, i think this should officially be 2.2)
     pub fn linear_to_gamma(&self) -> Self {
-        Color::new(
-            self.r.sqrt(),
-            self.g.sqrt(),
-            self.b.sqrt(),
-        )
+        Color::new(self.r.sqrt(), self.g.sqrt(), self.b.sqrt())
     }
 
-    //to image::Rgb<u8>, first clamp to max 1.0 so we dont overflow
+    //to image::Rgb<u8>, first clamp to max 1.0 and min 0.0. so we dont overflow
     pub fn to_rgb(&self) -> image::Rgb<u8> {
         let c = self.clamp();
-        image::Rgb([(c.r * 255.0) as u8, (c.g * 255.0) as u8, (c.b * 255.0) as u8])
+        image::Rgb([
+            (c.r * 255.0) as u8,
+            (c.g * 255.0) as u8,
+            (c.b * 255.0) as u8,
+        ])
     }
-
 }
 
 // + operator
@@ -74,9 +74,8 @@ impl Add for Color {
 
 // + operator
 impl AddAssign for Color {
-
     fn add_assign(&mut self, w: Color) {
-        *self = Self  {
+        *self = Self {
             r: self.r + w.r,
             g: self.g + w.g,
             b: self.b + w.b,
@@ -97,12 +96,12 @@ impl Sub for Color {
     }
 }
 
-// multiply with a f64 
+// multiply with a f64
 impl Mul<f64> for Color {
     type Output = Color;
 
     fn mul(self, q: f64) -> Color {
-        Color{
+        Color {
             r: self.r * q,
             g: self.g * q,
             b: self.b * q,
@@ -130,7 +129,6 @@ mod tests {
 
     #[test_log::test]
     fn test_create_color() {
-
         let c = Color::new(0.5, 0.4, 0.3);
         assert_approx_eq!(c.r, 0.5);
         assert_approx_eq!(c.g, 0.4);
@@ -157,7 +155,6 @@ mod tests {
         assert_approx_eq!(r.b, -0.1);
     }
 
-
     #[test_log::test]
     fn test_div() {
         let p = Color::new(0.4, 0.2, 0.8);
@@ -166,7 +163,7 @@ mod tests {
         assert_approx_eq!(r.r, 0.2);
         assert_approx_eq!(r.g, 0.1);
         assert_approx_eq!(r.b, 0.4);
-    }    
+    }
 
     #[test_log::test]
     fn test_clamp_color() {
@@ -197,5 +194,4 @@ mod tests {
         assert_eq!(c[1], 0);
         assert_eq!(c[2], 127);
     }
-
 }

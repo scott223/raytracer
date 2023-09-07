@@ -1,4 +1,7 @@
 use crate::color::Color;
+use crate::element::HitRecord;
+use crate::element::Hittable;
+use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::sphere::Sphere;
 use crate::plane::Plane;
@@ -12,9 +15,10 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    pub ratio: f64,
     pub img_width: f64,
     pub img_height: f64,
+    pub camera_center: Vec3,
+    pub focal_length: f64,
     pub samples: usize,
     pub max_depth: usize,
 }
@@ -28,11 +32,11 @@ impl Default for Config {
         let s: usize = 1; //samples
         let m: usize = 32; //max depth
 
-
         Config {
-            ratio: r,
             img_width: w,
             img_height: h,
+            camera_center: Vec3::new(0.0, 0.0, 0.0),
+            focal_length: 2.0,
             samples: s,
             max_depth: m,
         }
@@ -46,7 +50,6 @@ pub struct Scene {
 }
 
 impl Default for Scene {
-
     fn default() -> Self {
 
         let lambertian_1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
@@ -63,7 +66,18 @@ impl Default for Scene {
                 Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), lambertian_2)),
             ],
         }
+    }
+}
+
+impl Scene {
+
+    // fn trace_hits
+    // find the nearest hit for a ray
+    pub fn trace(&self, ray: &Ray) -> Option<HitRecord> {
+        self.elements
+            .iter()
+            .filter_map(|e| e.hit(&ray, 0.001, f64::MAX))
+            .min_by(|i1, i2 | i1.t.partial_cmp(&i2.t).unwrap())
 
     }
-
 }
