@@ -2,6 +2,7 @@ use crate::color::Color;
 use crate::elements::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use rand::Rng;
 
 use serde::{Deserialize, Serialize};
 
@@ -106,6 +107,15 @@ fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
     r_out_perp + r_out_parallel
 }
 
+
+// check reflectance
+// source: raytracing in one weekend
+fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+    let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Dielectric {
     pub index_of_refraction: f64,
@@ -123,8 +133,9 @@ impl Dielectric {
 // source: Ray tracing in one Weekend
 impl Scatterable for Dielectric {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)> {
+        let mut rng = rand::thread_rng();
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
-        let refraction_ratio: f64 = 1.0 / self.index_of_refraction;
+        let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
         let unit_direction: Vec3 = ray.direction.normalized(); // this should already be normalized, so we could remove this .normalize
 
         let minus_unit_direction: Vec3 = unit_direction * -1.0;
@@ -133,7 +144,7 @@ impl Scatterable for Dielectric {
 
         let cannot_refract: bool = refraction_ratio * sin_theta > 1.0;
 
-        if cannot_refract {
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
             let direction: Vec3 = reflect(&unit_direction, &hit_record.normal);
             let reflected_ray: Ray = Ray::new(hit_record.point, direction);
             Some((Some(reflected_ray), albedo))
@@ -144,3 +155,5 @@ impl Scatterable for Dielectric {
         }
     }
 }
+
+

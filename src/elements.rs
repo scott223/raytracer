@@ -10,6 +10,7 @@ pub struct HitRecord {
     pub t: f64,
     pub point: Vec3,
     pub normal: Vec3,
+    pub front_face: bool,
     pub material: Material,
 }
 
@@ -74,6 +75,7 @@ impl Hittable for Plane {
                         t: distance,
                         normal: -self.normal, //we need a minus here to get the defraction working, not sure why.....
                         point: p,
+                        front_face: true,
                         material: self.material,
                     };
                     return Some(hit);
@@ -141,12 +143,14 @@ impl Hittable for Sphere {
 
             if nearest_root < t_max && nearest_root > t_min {
                 let p = ray.at(nearest_root); //we dont need to find the solution with the discrimant, but can just ask the ray where it was at a given t
-                let n = p - self.center;
+                let outward_normal = ((p - self.center) / self.radius).normalized();
+                let front_face = ray.direction.dot(&outward_normal) < 0.0;
 
                 return Some(HitRecord {
                     t: nearest_root,
-                    normal: n.normalized(),
+                    normal: if front_face { outward_normal } else { -outward_normal },
                     point: p,
+                    front_face: front_face,
                     material: self.material,
                 });
             }

@@ -29,5 +29,13 @@ fn main() {
     let config: raytracer::config::Config =
         serde_json::from_reader(config_reader).expect("Error parsing input/config.json, quitting");
 
-    let _ = raytracer::render(scene, config);
+    match raytracer::render(scene, config) {
+        Ok(i) => {
+            i.save("renders/render.png").unwrap();
+            log::info!("File saved, closing program");
+        }
+        Err(e) => {
+            panic!("Error in render function: {}", e);
+        }
+    }
 } //fn main

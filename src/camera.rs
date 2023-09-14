@@ -4,6 +4,9 @@ use rand::Rng;
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
     pub camera_center: Vec3,
+    pub look_at: Vec3,
+    pub field_of_view: f64, // vertical fov in degrees
+    pub relative_up: Vec3,
     pub focal_length: f64,
     pub viewport_u: Vec3,
     pub viewport_v: Vec3,
@@ -17,17 +20,30 @@ pub struct Camera {
 // this function setts up the viewport, and calculates the location of the upper left pixel (00)
 impl Camera {
     pub fn new(config: &Config) -> Self {
+        let relative_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
+
         let camera_center: Vec3 = config.camera_center;
-        let focal_length: f64 = config.focal_length;
+        let look_at = config.camera_look_at;
+        let focal_length: f64 = (camera_center - look_at).length();
+
+        let field_of_view = config.camera_fov_vertical;
 
         let ratio = config.img_width / config.img_height;
 
-        let vv: f64 = 2.0; // viewport height
+        let theta = field_of_view.to_radians();
+        let h = (theta / 2.0).tan();
+
+        let vv: f64 = 2.0 * h * focal_length; // viewport height
         let vu: f64 = vv * ratio; // calculating viewport width
 
+        // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+        let w: Vec3 = (camera_center - look_at).normalized();
+        let u: Vec3 = relative_up.cross(&w).normalized();
+        let v: Vec3 = w.cross(&u);
+
         // Calculate the vectors across the horizontal and down the vertical viewport edges. this is basically the coordinate of the two corners
-        let viewport_u: Vec3 = Vec3::new(vu, 0.0, 0.0);
-        let viewport_v: Vec3 = Vec3::new(0.0, -vv, 0.0);
+        let viewport_u: Vec3 = u * vu;
+        let viewport_v: Vec3 = v * -1.0 * vv;
 
         // spacing between each pixel
         let pixel_delta_u: Vec3 = viewport_u / (config.img_width as f64);
@@ -35,7 +51,7 @@ impl Camera {
 
         // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
         let viewport_upper_left =
-            camera_center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+            camera_center - (w * focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
         log::info!(
@@ -50,8 +66,11 @@ impl Camera {
         Camera {
             viewport_u,
             viewport_v,
+            relative_up,
+            look_at,
             focal_length,
             camera_center,
+            field_of_view,
             viewport_upper_left,
             pixel_delta_u,
             pixel_delta_v,
@@ -92,6 +111,7 @@ mod tests {
     use crate::camera::Camera;
     use crate::config::Config;
     use crate::vec3::Vec3;
+    use crate::color::Color;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]
@@ -100,9 +120,11 @@ mod tests {
             img_width: 1024.0,
             img_height: 576.0,
             camera_center: Vec3::new(0.0, 0.0, 0.0),
-            focal_length: 5.0,
+            camera_look_at: Vec3::new(0.0, 0.0, -5.0),
+            camera_fov_vertical: 90.0,
             samples: 1,
             max_depth: 32,
+            sky_color: Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0),
         };
 
         let camera: Camera = Camera::new(&config);
@@ -110,11 +132,11 @@ mod tests {
         assert_approx_eq!(camera.camera_center, Vec3::new(0.0, 0.0, 0.0));
         assert_approx_eq!(camera.focal_length, 5.0);
 
-        assert_approx_eq!(camera.viewport_v, Vec3::new(0.0, -2.0, 0.0));
-        assert_approx_eq!(camera.viewport_u, Vec3::new(3.555555555555555, 0.0, 0.0));
-        assert_approx_eq!(camera.viewport_upper_left, Vec3::new(-1.77777777777, 1.0, -5.0));
-        assert_approx_eq!(camera.pixel_delta_u, Vec3::new(0.00347222, 0.0, 0.0));
-        assert_approx_eq!(camera.pixel_delta_v, Vec3::new(0.0, -0.0034722222, 0.0));
-        assert_approx_eq!(camera.pixel00_loc, Vec3::new(-1.77604166666666, 0.998263888, -5.0));
+        assert_approx_eq!(camera.viewport_v, Vec3::new(0.0, -10.0, 0.0));
+        assert_approx_eq!(camera.viewport_u, Vec3::new(17.7777777777, 0.0, 0.0));
+        assert_approx_eq!(camera.viewport_upper_left, Vec3::new(-8.88888888, 5.0, -5.0));
+        assert_approx_eq!(camera.pixel_delta_u, Vec3::new(0.017361111, 0.0, 0.0));
+        assert_approx_eq!(camera.pixel_delta_v, Vec3::new(0.0, -0.917361111, 0.0));
+        assert_approx_eq!(camera.pixel00_loc, Vec3::new(0.0, -0.017361111, 0.0));
     }
 }

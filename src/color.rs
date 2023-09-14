@@ -39,7 +39,7 @@ impl Color {
 
     //apply gamma correction (now using power of 2.0, i think this should officially be 2.2)
     pub fn linear_to_gamma(&self) -> Self {
-        Color::new(self.r.sqrt(), self.g.sqrt(), self.b.sqrt())
+        Color::new(self.r.powf(1.0/2.2), self.g.powf(1.0/2.2), self.b.powf(1.0/2.2))
     }
 
     //to image::Rgb<u8>, first clamp to max 1.0 and min 0.0. so we dont overflow

@@ -1,5 +1,5 @@
 // Rust imports
-use image::RgbImage;
+use image::{ImageBuffer, Rgb, RgbImage};
 use rayon::prelude::*;
 use std::error::Error;
 use std::time::Instant;
@@ -23,7 +23,10 @@ use ray::Ray;
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
 // applies parallel rendering using Rayon
-pub fn render(scene: Scene, config: Config) -> Result<(), Box<dyn Error>> {
+pub fn render(
+    scene: Scene,
+    config: Config,
+) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, Box<dyn Error>> {
     // create a new camera object
     let camera: Camera = Camera::new(&config);
 
@@ -43,24 +46,22 @@ pub fn render(scene: Scene, config: Config) -> Result<(), Box<dyn Error>> {
         render_line(i as i64, band, &camera, &scene, &config);
     });
 
-    // Create a new ImgBuf with width: img_width and height: img_y from the config
+    // create a new ImgBuf with width: img_width and height: img_y from the config
     let mut img = RgbImage::new(config.img_width as u32, config.img_height as u32);
 
     // walk through all the pixels and write to the img pixel as rgb
     for x in 0..(config.img_width) as usize {
         for y in 0..(config.img_height) as usize {
             let pixel = img.get_pixel_mut(x as u32, y as u32);
-            *pixel = pixels[(y * config.img_width as usize) + x].to_rgb(); // to_rgb applies clamp
+            *pixel = pixels[(y * config.img_width as usize) + x]
+                .linear_to_gamma()
+                .to_rgb(); // to_rgb applies clamp
         }
     }
 
     // save the image as a png
-    log::info!("Frame time: {}ms", start.elapsed().as_millis());
-    img.save("renders/render.png").unwrap();
-
-    // Closing
-    log::info!("Finished!");
-    Ok(())
+    log::info!("Render finished in {}ms", start.elapsed().as_millis());
+    Ok(img)
 } // fn render
 
 // fn render_line
@@ -91,28 +92,34 @@ fn ray_color(scene: &Scene, config: &Config, ray: &Ray, depth: usize) -> Color {
         return Color::new(0.0, 0.0, 0.0);
     }
 
+    // we trace the ray to see what it will hit. the scene.trace iterates through all the objects in the scene and calls the hittable->hit function to determine if a hit is made
     match scene.trace(&ray) {
         Some(hit) => {
             // we hit something
-
+            // we start with scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
             match hit.material.scatter(ray, &hit) {
-                // lets start with the scatter
-                Some((scattered_ray, albedo)) => match scattered_ray {
-                    // there is a scattered ray, so lets get the color of that ray
-                    Some(sr) => {
-                        // call the ray_color function again, but decrease the depth by 1 so that we dont run into an infinite loop
-                        let target_color = ray_color(&scene, &config, &sr, depth - 1);
 
-                        // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
-                        return Color::new(
-                            albedo.r * target_color.r,
-                            albedo.g * target_color.g,
-                            albedo.b * target_color.b,
-                        );
-                    } // there is no scattered ray
-                    None => albedo,
-                },
+                Some((scattered_ray, albedo)) => {
+                    // see if there is a ray returned
+                    match scattered_ray {
+                        Some(sr) => {
+                            // there is a scattered ray, so lets get the color of that ray
+                            // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
+                            let target_color = ray_color(&scene, &config, &sr, depth - 1);
 
+                            // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
+                            return Color::new(
+                                albedo.r * target_color.r,
+                                albedo.g * target_color.g,
+                                albedo.b * target_color.b,
+                            );
+                        }
+                        None => {
+                            // there is no ray, so just return the albedo of the hittable object (this could be a light?)
+                            albedo
+                        }
+                    }
+                }
                 None => {
                     // no scattered ray
                     // return black
@@ -121,8 +128,8 @@ fn ray_color(scene: &Scene, config: &Config, ray: &Ray, depth: usize) -> Color {
             }
         }
         None => {
-            // we did not hit anything, so we paint the sky
-            Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0) // return sky
+            // we did not hit anything, so we return the color of the sky
+            config.sky_color
         }
     }
 } // fn ray_color

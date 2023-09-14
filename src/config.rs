@@ -11,9 +11,11 @@ pub struct Config {
     pub img_width: f64,
     pub img_height: f64,
     pub camera_center: Vec3,
-    pub focal_length: f64,
+    pub camera_look_at: Vec3,
+    pub camera_fov_vertical: f64,
     pub samples: usize,
     pub max_depth: usize,
+    pub sky_color: Color,
 }
 
 impl Default for Config {
@@ -21,17 +23,22 @@ impl Default for Config {
         let r: f64 = 16.0/9.0; //aspect ratio
         let w: f64 = 1024.0; //image width
         let h: f64 = w/r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
+        let fov: f64 = 90.0;
 
         let s: usize = 1; //samples
         let m: usize = 32; //max depth
+
+        let sky_color = Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0);
 
         Config {
             img_width: w,
             img_height: h,
             camera_center: Vec3::new(0.0, 0.0, 0.0),
-            focal_length: 2.0,
+            camera_look_at: Vec3::new(0.0, 0.0, -3.0),
+            camera_fov_vertical: fov,
             samples: s,
             max_depth: m,
+            sky_color,
         }
     }
 }

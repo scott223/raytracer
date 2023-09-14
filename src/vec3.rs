@@ -106,6 +106,15 @@ impl Vec3 {
         self.x * w.x + self.y * w.y + self.z * w.z
     }
 
+    // vector cross product
+    pub fn cross(&self, other: &Vec3) -> Vec3 {
+        Vec3::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    }
+
     // fn normalized
     // return the normalized vector (= unit vector)
     pub fn normalized(&self) -> Self {
@@ -378,6 +387,13 @@ mod tests {
         let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
         let q: Vec3 = Vec3::new(0.2, 0.3, 0.4);
         assert_approx_eq!(p.dot(&q), 0.2);
+    }
+
+    #[test_log::test]
+    fn test_cross() {
+        let p: Vec3 = Vec3::new(1.0, 0.0, 0.0);
+        let q: Vec3 = Vec3::new(3.0, 2.0, 4.0);
+        assert_approx_eq!(p.cross(&q), Vec3::new(0.0, -4.0, 2.0));
     }
 
     // Test vector normalization
