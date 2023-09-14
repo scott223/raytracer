@@ -3,20 +3,22 @@
   "img_height": 600.0,
   "camera_center": {
     "x": 0.0,
-    "y": 2.0,
-    "z": 12.0
+    "y": 1.5,
+    "z": 20.0
   },
   "camera_look_at": {
     "x": 0.0,
-    "y": -1.0,
-    "z": -5.0
+    "y": 0.8,
+    "z": -1.0
   },
-  "camera_fov_vertical": 30.0,
-  "samples": 2,
+  "camera_fov_vertical": 25.0,
+  "camera_defocus_angle": 0.6,
+  "camera_focus_dist": 23.0,
+  "samples": 100,
   "max_depth": 32,
   "sky_color": {
-    "r": 0.7,
-    "g": 0.95,
-    "b": 1.0
+    "r": 0.3,
+    "g": 0.5,
+    "b": 0.9
   }
 }

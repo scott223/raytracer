@@ -1,14 +1,16 @@
 # Raytracer
-Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.
+Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.
 
-### Ray tracing features
+## Ray tracing features
 - pixel by pixel raytracing
 - various primitives (sphere, plane)
-- various materials (Lambertian, Metal, ...)
+- various materials (Lambertian, Metal, Glass, ...)
 - stochastich anti-alliasing
-- parallel (multi-threaded) rendering
+- parallel multi-threaded rendering
 - shadow acne prevention
 - gamma correction
+- configurable depth of focus
+- reads the scene and configuration input from JSON
 - ...
 
 ## Credits / references

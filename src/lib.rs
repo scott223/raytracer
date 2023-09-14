@@ -54,8 +54,9 @@ pub fn render(
         for y in 0..(config.img_height) as usize {
             let pixel = img.get_pixel_mut(x as u32, y as u32);
             *pixel = pixels[(y * config.img_width as usize) + x]
-                .linear_to_gamma()
-                .to_rgb(); // to_rgb applies clamp
+                .clamp() // clamp to max 1.0 and min 0.0
+                .linear_to_gamma(2.2) // apply the gamma correction
+                .to_rgb(); // and transform to rgb space
         }
     }
 
@@ -78,8 +79,8 @@ pub fn render_line(y: i64, band: &mut [Color], camera: &Camera, scene: &Scene, c
             color += ray_color(&scene, &config, &ray, config.max_depth);
         }
 
-        // set pixel color, but first divide by the number of samples to get the average, and to the gamma correction
-        band[x] = color.divide_by_samples(config.samples).linear_to_gamma();
+        // set pixel color, but first divide by the number of samples to get the average and return
+        band[x] = color.divide_by_samples(config.samples)
     }
 } // fn render_line
 
@@ -98,7 +99,6 @@ fn ray_color(scene: &Scene, config: &Config, ray: &Ray, depth: usize) -> Color {
             // we hit something
             // we start with scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
             match hit.material.scatter(ray, &hit) {
-
                 Some((scattered_ray, albedo)) => {
                     // see if there is a ray returned
                     match scattered_ray {
@@ -128,8 +128,9 @@ fn ray_color(scene: &Scene, config: &Config, ray: &Ray, depth: usize) -> Color {
             }
         }
         None => {
-            // we did not hit anything, so we return the color of the sky
-            config.sky_color
+            // we did not hit anything, so we return the color of the sky but with a little gradient
+            let a = 0.5*(ray.direction.y() + 1.0);
+            return Color::new(0.9, 0.9, 1.0) * (1.0-a) + config.sky_color * a;
         }
     }
 } // fn ray_color

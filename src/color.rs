@@ -37,9 +37,9 @@ impl Color {
         )
     }
 
-    //apply gamma correction (now using power of 2.0, i think this should officially be 2.2)
-    pub fn linear_to_gamma(&self) -> Self {
-        Color::new(self.r.powf(1.0/2.2), self.g.powf(1.0/2.2), self.b.powf(1.0/2.2))
+    //apply gamma correction
+    pub fn linear_to_gamma(&self, correction: f64) -> Self {
+        Color::new(self.r.powf(1.0/correction), self.g.powf(1.0/correction), self.b.powf(1.0/correction))
     }
 
     //to image::Rgb<u8>, first clamp to max 1.0 and min 0.0. so we dont overflow
@@ -174,11 +174,12 @@ mod tests {
 
     #[test_log::test]
     fn test_gamma_color() {
-        let c = Color::new(0.5, 0.4, 0.3).linear_to_gamma();
+        let correction: f64 = 2.2;
+        let c = Color::new(0.5, 0.4, 0.3).linear_to_gamma(correction);
 
-        assert_approx_eq!(c.r, 0.7071067811);
-        assert_approx_eq!(c.g, 0.6324555320);
-        assert_approx_eq!(c.b, 0.5477225575);
+        assert_approx_eq!(c.r, 0.5_f64.powf(1.0/correction));
+        assert_approx_eq!(c.g, 0.4_f64.powf(1.0/correction));
+        assert_approx_eq!(c.b, 0.3_f64.powf(1.0/correction));
     }
 
     #[test_log::test]

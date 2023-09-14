@@ -40,6 +40,19 @@ impl Vec3 {
         }
     }
 
+    // creates a random point on a unit disk (length <1.0, z = 0)
+    pub fn new_random_in_unit_disk() -> Self {
+        loop {
+            let v = Vec3::new(
+                rand::thread_rng().gen_range(-1.0..1.0),
+                rand::thread_rng().gen_range(-1.0..1.0),
+                0.0);
+            if v.length_squared() < 1.0 {
+                return v;
+            }       
+        }
+    }
+
     // creates a normalized random vector in the unit sphere (initial lenght < 1.0)
     pub fn new_random_unit_vector() -> Self {
         Vec3::new_random_unit_sphere().normalized()
@@ -264,6 +277,16 @@ mod tests {
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
         assert!(p.z() < 1.01 && p.z() > -1.01);
+        assert!(p.length() < 1.0);
+    }
+
+    #[test_log::test]
+    fn test_new_random_in_unit_disk() {
+        let p: Vec3 = Vec3::new_random_in_unit_disk();
+
+        assert!(p.x() < 1.01 && p.x() > -1.01);
+        assert!(p.y() < 1.01 && p.y() > -1.01);
+        assert!(p.z() == 0.0);
         assert!(p.length() < 1.0);
     }
 
