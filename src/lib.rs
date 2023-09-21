@@ -13,6 +13,8 @@ mod elements;
 mod materials;
 mod ray;
 mod vec3;
+mod interval;
+mod aabb;
 
 use camera::Camera;
 use color::Color;
@@ -55,7 +57,7 @@ pub fn render(
             let pixel = img.get_pixel_mut(x as u32, y as u32);
             *pixel = pixels[(y * config.img_width as usize) + x]
                 .clamp() // clamp to max 1.0 and min 0.0
-                .linear_to_gamma(2.2) // apply the gamma correction
+                .linear_to_gamma(2.0) // apply the gamma correction
                 .to_rgb(); // and transform to rgb space
         }
     }

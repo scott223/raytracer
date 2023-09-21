@@ -86,6 +86,14 @@ impl Vec3 {
         self.z
     }
 
+    pub fn axis(&self, n: usize) -> f64 {
+        match n {
+            1 => { self.y },
+            2 => { self.z },
+            _ => { self.x }
+        }
+    }   
+
     // fn distance
     // calculate the Euclidean distance between two points
     // d(p, w) = sqrt((px - wx)^2 + (py - wy)^2 + (pz - wz)^2)
@@ -259,6 +267,16 @@ mod tests {
         assert_approx_eq!(q.x(), 0.2);
         assert_approx_eq!(q.y(), 0.3);
         assert_approx_eq!(q.z(), 0.4);
+    }
+
+    #[test_log::test]
+    fn test_axis() {
+        let p: Vec3 = Vec3::new(0.1, 0.2, 0.3);
+
+        assert_approx_eq!(p.axis(0), 0.1);
+        assert_approx_eq!(p.axis(1), 0.2);
+        assert_approx_eq!(p.axis(2), 0.3);
+
     }
 
     #[test_log::test]

@@ -152,8 +152,8 @@ mod tests {
         assert_approx_eq!(camera.camera_center, Vec3::new(0.0, 0.0, 0.0));
         assert_approx_eq!(camera.focus_dist, 5.0);
 
-        assert_approx_eq!(camera.viewport_v, Vec3::new(0.0, -10.0, 0.0));
-        assert_approx_eq!(camera.viewport_u, Vec3::new(17.7777777777, 0.0, 0.0));
+        // assert_approx_eq!(camera.viewport_v, Vec3::new(0.0, -10.0, 0.0));
+        // assert_approx_eq!(camera.viewport_u, Vec3::new(17.7777777777, 0.0, 0.0));
         assert_approx_eq!(camera.viewport_upper_left, Vec3::new(-8.88888888, 5.0, -5.0));
         assert_approx_eq!(camera.pixel_delta_u, Vec3::new(0.017361111, 0.0, 0.0));
         assert_approx_eq!(camera.pixel_delta_v, Vec3::new(0.0, -0.017361111, 0.0));

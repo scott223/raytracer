@@ -1,6 +1,7 @@
 use crate::color::Color;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use crate::interval::Interval;
 use crate::elements::*;
 use crate::materials::*;
 
@@ -57,7 +58,7 @@ impl Default for Scene {
     fn default() -> Self {
 
         let lambertian_1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
-        let lambertian_2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));
+ //       let lambertian_2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));
 
         let metal: Material = Material::Metal(Metal::new(Color::new(0.8, 0.7, 0.7), 0.1));
         let glass: Material = Material::Dielectric(Dielectric::new(1.5));
@@ -67,7 +68,7 @@ impl Default for Scene {
                 Element::Sphere(Sphere::new(Vec3::new(0.0, -1.0, -25.0), 2.0, metal)),
                 Element::Sphere(Sphere::new(Vec3::new(-3.0, -1.25, -23.0), 1.5, glass)),
                 Element::Sphere(Sphere::new(Vec3::new(2.0, -2.0, -20.0), 1.0, lambertian_1)),             
-                Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), lambertian_2)),
+ //               Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), lambertian_2)),
             ],
         }
     }
@@ -80,7 +81,7 @@ impl Scene {
     pub fn trace(&self, ray: &Ray) -> Option<HitRecord> {
         self.elements
             .iter()
-            .filter_map(|e| e.hit(&ray, 0.001, f64::MAX))
+            .filter_map(|e| e.hit(&ray, &Interval::new(0.001, f64::MAX)))
             .min_by(|i1, i2 | i1.t.partial_cmp(&i2.t).unwrap())
 
     }

@@ -1,6 +1,7 @@
-use crate::materials::*;
+use crate::{materials::*, aabb::Aabb};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use crate::interval::Interval;
 
 use serde::{Deserialize, Serialize};
 
@@ -16,24 +17,77 @@ pub struct HitRecord {
 
 // hittable trait defines the hit function for each element
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord>;
+    fn bounding_box(&self) -> Aabb;
 }
 
 // enum for all the different elements
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Element {
     Sphere(Sphere),
-    Plane(Plane),
+//    Plane(Plane),
 }
 
 // matching the hit function with the hittable trait for each type of element
 impl Hittable for Element {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         match *self {
-            Element::Sphere(ref s) => s.hit(ray, t_min, t_max),
-            Element::Plane(ref p) => p.hit(ray, t_min, t_max),
+            Element::Sphere(ref s) => s.hit(ray, ray_t),
+ //           Element::Plane(ref p) => p.hit(ray, t_min, t_max),
         }
     }
+
+    fn bounding_box(&self) -> Aabb {
+        match *self {
+            Element::Sphere(ref s) => s.bounding_box(),
+        }
+    }
+}
+
+// this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
+// it will only have a left or a right object
+
+pub struct BHVNode {
+    left: Box<dyn Hittable>,
+    right: Box<dyn Hittable>,
+}
+
+impl Hittable for BHVNode {
+
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
+        
+        // check if we hit the bounding box of this node, because if we dont, we can stop right here
+
+        if !self.bounding_box().hit(ray, ray_t) { 
+            return None 
+        }
+
+        // we are continuing, so we must have hit the left or the right hittable. return the hitrecord
+
+        match self.left.hit(ray, ray_t) {
+            Some(h) => {
+                return Some(h);
+            },
+            _ => {} 
+        }
+
+        // and the right
+
+        match self.right.hit(ray, ray_t) {
+            Some(h) => {
+                return Some(h);
+            },
+            _ => {
+                // this should never be triggered, we should have hit something left or right ( or already have breaked at the first bounding box check )
+                None
+            }
+        }
+    }
+    
+    fn bounding_box(&self) -> Aabb {
+        Aabb::new_from_aabbs(self.left.bounding_box(), self.right.bounding_box())
+    }
+
 }
 
 // Plane element
@@ -59,7 +113,7 @@ impl Plane {
 // return a HitRecord, that contains the position on the ray, the point of the hit & the material
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
 impl Hittable for Plane {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         // get the denominator
         let denom = self.normal.dot(&ray.direction);
 
@@ -69,7 +123,7 @@ impl Hittable for Plane {
             let distance = v.dot(&self.normal) / denom;
 
             if distance >= 0.0 {
-                if distance > t_min && distance < t_max {
+                if distance > ray_t.interval_min && distance < ray_t.interval_max {
                     let p = ray.at(distance);
                     let hit = HitRecord {
                         t: distance,
@@ -83,6 +137,11 @@ impl Hittable for Plane {
             }
         }
         None // no hits found
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        // TODO, will need to figure out how to add a bounding box for an infinite plane
+        todo!();
     }
 }
 
@@ -106,10 +165,14 @@ impl Sphere {
     }
 }
 
-// finding the hits for a given ray
-// based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
+// implementing hte hittable traits for the Sphere
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+
+    // finding the hits for a given ray
+    // based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
+
+
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         let l = ray.origin - self.center;
 
         // solve the quadratic equation
@@ -141,7 +204,7 @@ impl Hittable for Sphere {
                 second_root
             };
 
-            if nearest_root < t_max && nearest_root > t_min {
+            if nearest_root < ray_t.interval_max && nearest_root > ray_t.interval_min {
                 let p = ray.at(nearest_root); //we dont need to find the solution with the discrimant, but can just ask the ray where it was at a given t
                 let outward_normal = ((p - self.center) / self.radius).normalized();
                 let front_face = ray.direction.dot(&outward_normal) < 0.0;
@@ -156,6 +219,12 @@ impl Hittable for Sphere {
             }
         }
         None // no hits found
+    }
+
+    // construct an axis aligned bounding box Aabb for a sphere
+    fn bounding_box(&self) -> Aabb {
+        let rvec = Vec3::new(self.radius, self.radius, self.radius);
+        Aabb::new_from_points(self.center - rvec, self.center + rvec)
     }
 }
 
@@ -181,7 +250,7 @@ mod tests {
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 1.0));
         let p: Plane = Plane::new(Vec3::new(0.0, 0.0, 5.0), Vec3::new(0.0, 0.0, 1.0), m1);
 
-        if let Some(hit) = p.hit(&r, 0.0, f64::MAX) {
+        if let Some(hit) = p.hit(&r, &Interval::new(0.0, f64::MAX)) {
             assert_eq!(hit.t, 5.0);
             assert_eq!(hit.point, Vec3::new(0.0, 0.0, 5.0));
         }
@@ -189,7 +258,7 @@ mod tests {
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, -1.0, 0.0));
         let p: Plane = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), m1);
 
-        if let Some(hit) = p.hit(&r, 0.0, f64::MAX) {
+        if let Some(hit) = p.hit(&r, &Interval::new(0.0, f64::MAX)) {
             assert_eq!(hit.t, 2.5);
             assert_eq!(hit.point, Vec3::new(0.0, -2.5, 0.0));
         }
@@ -209,7 +278,7 @@ mod tests {
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
         let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, -3.0), 1.0, m1);
 
-        if let Some(hit) = s.hit(&r, 0.0, f64::MAX) {
+        if let Some(hit) = s.hit(&r, &Interval::new(0.0, f64::MAX)) {
             assert_eq!(hit.t, 2.0);
             assert_eq!(hit.point, Vec3::new(0.0, 0.0, -2.0));
         }
