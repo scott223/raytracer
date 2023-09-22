@@ -1,6 +1,7 @@
 use crate::interval::Interval;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use std::mem;
 
 // axis aligned bounding box
 
@@ -13,7 +14,11 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
-        Aabb { x, y, z }
+        Aabb { 
+            x, 
+            y, 
+            z,
+        }
     }
 
     pub fn new_from_points(p: Vec3, q: Vec3) -> Self {
@@ -34,16 +39,18 @@ impl Aabb {
 
     pub fn axis(&self, n: usize) -> Interval {
         match n {
+            0 => self.x,
             1 => self.y,
             2 => self.z,
-            _ => self.x,
+            _ => panic!("axis out of bounds"),
         }
     }
 
     // checks if we have a hit with the aabb, in a given interval
-    pub fn hit(&self, ray: &Ray, ray_t: &Interval) -> bool {
+    pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
 
         for a in 0..3 as usize {
+            //println!("a: {}", a);
             let inv_d: f64 = 1.0 / ray.direction.axis(a);
             let orig: f64 = ray.origin.axis(a);
 
@@ -51,26 +58,25 @@ impl Aabb {
             let mut t1: f64 = (self.axis(a).interval_max - orig) * inv_d;
 
             // we need to swap t0 and t1
-            // TODO: make nicer swap
             if inv_d < 0.0 {
-                let t2 = t0;
-                t0 = t1;
-                t1 = t2
+               mem::swap(&mut t0, &mut t1);
             }
+            //println!("inv_d: {}, t0: {}, t1: {}", inv_d, t0, t1);
 
-            let mut int = ray_t.clone();
+            let mut check_int: Interval = ray_t.clone();
 
-            if t0 > ray_t.interval_min { int.interval_min = t0 };
-            if t1 < ray_t.interval_max { int.interval_max = t1 };
+            if t0 > check_int.interval_min { check_int.interval_min = t0 };
+            if t1 < check_int.interval_max { check_int.interval_max = t1 };
 
             // no hit wit the aabb
-            if int.interval_max <= int.interval_min { 
+            if check_int.interval_max <= check_int.interval_min { 
+                
                 return false 
             }
         }
 
         // we have a hit with the aabb
-        return true;
+        return true
     
     }
 }
@@ -159,12 +165,12 @@ mod tests {
 
         let aabb_p: Aabb = Aabb::new_from_points(p, q);
         let ray: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.0, 1.0, 1.0));
-        let int: Interval = Interval::new(0.0, 20.0);
+        let mut int: Interval = Interval::new(0.0, 20.0);
 
-        assert_eq!(aabb_p.hit(&ray, &int), true);
+        assert_eq!(aabb_p.hit(&ray, &mut int), true);
 
         let ray_two: Ray = Ray::new(Vec3::new(5.0, 5.0, 5.0), Vec3::new(6.0, 6.0, 6.0));
 
-        assert_eq!(aabb_p.hit(&ray_two, &int), false);
+        assert_eq!(aabb_p.hit(&ray_two, &mut int), false);
     }
 }
