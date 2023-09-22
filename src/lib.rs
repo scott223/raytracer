@@ -15,6 +15,7 @@ mod ray;
 mod vec3;
 mod interval;
 mod aabb;
+mod bhv;
 
 use camera::Camera;
 use color::Color;
@@ -22,7 +23,7 @@ use config::{Config, Scene};
 use materials::Scatterable;
 use ray::Ray;
 use crate::elements::Element;
-use crate::elements::BHVNode;
+use crate::bhv::BHVNode;
 use crate::interval::Interval;
 
 // fn render
