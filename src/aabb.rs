@@ -14,11 +14,7 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
-        Aabb { 
-            x, 
-            y, 
-            z,
-        }
+        Aabb { x, y, z }
     }
 
     pub fn new_from_points(p: Vec3, q: Vec3) -> Self {
@@ -33,7 +29,22 @@ impl Aabb {
         Aabb {
             x: Interval::new_from_intervals(a.x, b.x),
             y: Interval::new_from_intervals(a.y, b.y),
-            z: Interval::new_from_intervals(a.z, b.z),           
+            z: Interval::new_from_intervals(a.z, b.z),
+        }
+    }
+
+    // return an AABB that has no side narrower than some delta, padding if necessary
+    pub fn pad(&self) -> Self { 
+        let delta: f64 = 0.0001;
+
+        let new_x: Interval = if self.x.size() >= delta { self.x } else {self.x.expand(delta)};
+        let new_y: Interval = if self.y.size() >= delta { self.y } else {self.y.expand(delta)};
+        let new_z: Interval = if self.z.size() >= delta { self.z } else {self.z.expand(delta)};
+
+        Aabb {
+            x: new_x,
+            y: new_y,
+            z: new_z,
         }
     }
 
@@ -48,7 +59,6 @@ impl Aabb {
 
     // checks if we have a hit with the aabb, in a given interval
     pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
-
         for a in 0..3 as usize {
             //println!("a: {}", a);
             let inv_d: f64 = 1.0 / ray.direction.axis(a);
@@ -59,25 +69,27 @@ impl Aabb {
 
             // we need to swap t0 and t1
             if inv_d < 0.0 {
-               mem::swap(&mut t0, &mut t1);
+                mem::swap(&mut t0, &mut t1);
             }
             //println!("inv_d: {}, t0: {}, t1: {}", inv_d, t0, t1);
 
             let mut check_int: Interval = ray_t.clone();
 
-            if t0 > check_int.interval_min { check_int.interval_min = t0 };
-            if t1 < check_int.interval_max { check_int.interval_max = t1 };
+            if t0 > check_int.interval_min {
+                check_int.interval_min = t0
+            };
+            if t1 < check_int.interval_max {
+                check_int.interval_max = t1
+            };
 
             // no hit wit the aabb
-            if check_int.interval_max <= check_int.interval_min { 
-                
-                return false 
+            if check_int.interval_max <= check_int.interval_min {
+                return false;
             }
         }
 
-        // we have a hit with the aabb
-        return true
-    
+        // we have a hit with the aabb, so return true
+        return true;
     }
 }
 
@@ -119,10 +131,10 @@ mod tests {
     }
 
     #[test_log::test]
-    fn test_new_from_aabbs()  {
+    fn test_new_from_aabbs() {
         let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
         let q: Vec3 = Vec3::new(2.0, 2.0, 2.0);
-        
+
         let a: Aabb = Aabb::new_from_points(p, q);
 
         let w: Vec3 = Vec3::new(3.0, 3.0, 3.0);

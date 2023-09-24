@@ -28,6 +28,11 @@ impl Interval {
         let padding = delta / 2.0;
         Interval::new(self.interval_min-padding, self.interval_max+padding)
     }
+
+    pub fn contains(&self, x: f64) -> bool {
+        self.interval_min <= x && x <= self.interval_max
+    }
+
 }
 
 #[cfg(test)]
@@ -69,6 +74,13 @@ mod tests {
         let p: Interval = Interval::new(0.1, 0.2);
         assert_approx_eq!(p.expand(0.1).interval_max, 0.25);
         assert_approx_eq!(p.expand(0.1).interval_min, 0.05);
+    }
+
+    #[test_log::test]
+    fn test_contains() {
+        let p: Interval = Interval::new(1.0, 2.0);
+        assert_eq!(p.contains(1.5), true);
+        assert_eq!(p.contains(2.5), false);    
     }
 
 }

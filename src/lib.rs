@@ -7,24 +7,24 @@ use std::time::Instant;
 // Raytracer imports
 pub mod config;
 
+mod aabb;
+mod bhv;
 mod camera;
 mod color;
 mod elements;
+mod interval;
 mod materials;
 mod ray;
 mod vec3;
-mod interval;
-mod aabb;
-mod bhv;
 
+use bhv::BHVNode;
 use camera::Camera;
 use color::Color;
 use config::{Config, Scene};
-use materials::Scatterable;
+use elements::Element;
+use interval::Interval;
+use materials::{Scatterable, Emmits};
 use ray::Ray;
-use crate::elements::Element;
-use crate::bhv::BHVNode;
-use crate::interval::Interval;
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -40,7 +40,7 @@ pub fn render(
     log::info!("Creating the BHV node tree");
     let mut objects: Vec<Element> = scene.elements.clone();
     // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
-    let bhv_tree = BHVNode::new(&mut objects, 0, scene.elements.len()); 
+    let bhv_tree = BHVNode::new(&mut objects, 0, scene.elements.len());
 
     // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
     let mut pixels =
@@ -79,7 +79,14 @@ pub fn render(
 
 // fn render_line
 // takes a band of pixels (a single horizontal line along a fixed y coordinate) and renders the pixels on that band
-pub fn render_line(y: i64, band: &mut [Color], camera: &Camera, scene: &Scene, bhv_tree: &Box<dyn elements::Hittable + Sync>, config: &Config) {
+pub fn render_line(
+    y: i64,
+    band: &mut [Color],
+    camera: &Camera,
+    scene: &Scene,
+    bhv_tree: &Box<dyn elements::Hittable + Sync>,
+    config: &Config,
+) {
     for x in 0..config.img_width as usize {
         // start with black color
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
@@ -99,7 +106,13 @@ pub fn render_line(y: i64, band: &mut [Color], camera: &Camera, scene: &Scene, b
 // fn ray_color
 // finds the color of the ray, by checking for hits and using the material of that hit + scattered/reflected rays to establish the color
 // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
-fn ray_color(scene: &Scene, bhv_tree: &Box<dyn elements::Hittable + Sync>, config: &Config, ray: &Ray, depth: usize) -> Color {
+fn ray_color(
+    scene: &Scene,
+    bhv_tree: &Box<dyn elements::Hittable + Sync>,
+    config: &Config,
+    ray: &Ray,
+    depth: usize,
+) -> Color {
     if depth == 0 {
         // we ran out of depth iterations, so we return black
         return Color::new(0.0, 0.0, 0.0);
@@ -111,6 +124,7 @@ fn ray_color(scene: &Scene, bhv_tree: &Box<dyn elements::Hittable + Sync>, confi
 
     match trace {
         Some(hit) => {
+            let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
             // we hit something
             // we start with scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
             match hit.material.scatter(ray, &hit) {
@@ -120,10 +134,11 @@ fn ray_color(scene: &Scene, bhv_tree: &Box<dyn elements::Hittable + Sync>, confi
                         Some(sr) => {
                             // there is a scattered ray, so lets get the color of that ray
                             // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
-                            let target_color = ray_color(&scene, &bhv_tree, &config, &sr, depth - 1);
+                            let target_color: Color =
+                                ray_color(&scene, &bhv_tree, &config, &sr, depth - 1);
 
                             // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
-                            return Color::new(
+                            color_from_scatter = Color::new(
                                 albedo.r * target_color.r,
                                 albedo.g * target_color.g,
                                 albedo.b * target_color.b,
@@ -131,21 +146,38 @@ fn ray_color(scene: &Scene, bhv_tree: &Box<dyn elements::Hittable + Sync>, confi
                         }
                         None => {
                             // there is no ray, so just return the albedo of the hittable object (this could be a light?)
-                            albedo
+                            // albedo
                         }
                     }
                 }
                 None => {
                     // no scattered ray
                     // return black
-                    return Color::new(0.0, 0.0, 0.0);
+                    //return Color::new(0.0, 0.0, 0.0);
                 }
             }
+
+            let mut color_from_emmission = Color::new(0.0, 0.0, 0.0);
+            
+            match hit.material.emitted(ray, &hit) {
+
+                Some(c) => {
+                    color_from_emmission = c;
+                },
+                _ => {
+                    //
+                }
+
+            }
+
+            // return the emmission and the scatter color
+            color_from_scatter + color_from_emmission
         }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
-            let a = 0.5*(ray.direction.y() + 1.0);
-            return Color::new(0.9, 0.9, 1.0) * (1.0-a) + config.sky_color * a;
+            // let a = 0.5 * (ray.direction.y() + 1.0);
+            // return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
+            Color::new(0.0, 0.0, 0.0)
         }
     }
 } // fn ray_color

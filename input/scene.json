@@ -1,169 +1,169 @@
 {
-    "elements": [
+  "elements": [
       {
-        "Sphere": {
-          "center": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": -5.0
-          },
-          "radius": 2.0,
-          "material": {
-            "Metal": {
-              "albedo": {
-                "r": 0.8,
-                "g": 0.7,
-                "b": 0.7
-              },
-              "fuzz": 0.05
-            }
+      "Sphere": {
+        "center": {
+          "x": 0.0,
+          "y": -1.0,
+          "z": -5.0
+        },
+        "radius": 2.0,
+        "material": {
+          "Metal": {
+            "albedo": {
+              "r": 0.8,
+              "g": 0.7,
+              "b": 0.7
+            },
+            "fuzz": 0.05
           }
         }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": 4.0,
-            "y": -1.2,
-            "z": -3.0
-          },
-          "radius": 1.0,
-          "material": {
-            "Metal": {
-              "albedo": {
-                "r": 0.2,
-                "g": 0.1,
-                "b": 0.7
-              },
-              "fuzz": 0.3
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": -3.0,
-            "y": -1.25,
-            "z": -3.0
-          },
-          "radius": 1.5,
-          "material": {
-            "Dielectric": {
-              "index_of_refraction": 1.5
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": -3.0,
-            "y": -1.25,
-            "z": -3.0
-          },
-          "radius": -1.4,
-          "material": {
-            "Dielectric": {
-              "index_of_refraction": 1.5
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": 1.0,
-            "y": -2.0,
-            "z": 1.0
-          },
-          "radius": 1.0,
-          "material": {
-            "Lambertian": {
-              "albedo": {
-                "r": 0.8,
-                "g": 0.8,
-                "b": 0.3
-              }
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": -3.0,
-            "y": -1.0,
-            "z": -8.0
-          },
-          "radius": 1.0,
-          "material": {
-            "Lambertian": {
-              "albedo": {
-                "r": 0.5,
-                "g": 0.8,
-                "b": 0.3
-              }
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": -6.0,
-            "y": -1.0,
-            "z": -30.0
-          },
-          "radius": 3.0,
-          "material": {
-            "Lambertian": {
-              "albedo": {
-                "r": 0.5,
-                "g": 0.3,
-                "b": 0.2
-              }
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": 4.0,
-            "y": -2.0,
-            "z": -10.0
-          },
-          "radius": 1.0,
-          "material": {
-            "Lambertian": {
-              "albedo": {
-                "r": 0.5,
-                "g": 0.3,
-                "b": 0.3
-              }
-            }
-          }
-        }
-      },
-      {
-        "Sphere": {
-          "center": {
-            "x": 0.0,
-            "y": -150.0,
-            "z": -30.0
-          },
-          "radius": 150.0,
-          "material": {
-            "Lambertian": {
-              "albedo": {
-                "r": 0.5,
-                "g": 0.3,
-                "b": 0.3
-              }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 4.0,
+          "y": -1.2,
+          "z": -3.0
+        },
+        "radius": 1.0,
+        "material": {
+          "DiffuseLight": {
+            "albedo": {
+              "r": 4.0,
+              "g": 4.0,
+              "b": 4.0
             }
           }
         }
       }
-    ]
-  }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": -3.0,
+          "y": -1.25,
+          "z": -3.0
+        },
+        "radius": 1.5,
+        "material": {
+          "Dielectric": {
+            "index_of_refraction": 1.5
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": -3.0,
+          "y": -1.25,
+          "z": -3.0
+        },
+        "radius": -1.4,
+        "material": {
+          "Dielectric": {
+            "index_of_refraction": 1.5
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 1.0,
+          "y": -2.0,
+          "z": 1.0
+        },
+        "radius": 1.0,
+        "material": {
+          "Metal": {
+            "albedo": {
+              "r": 0.3,
+              "g": 0.3,
+              "b": 0.8
+            },
+            "fuzz": 0.10
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": -3.0,
+          "y": -1.0,
+          "z": -8.0
+        },
+        "radius": 1.0,
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.5,
+              "g": 0.8,
+              "b": 0.3
+            }
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": -6.0,
+          "y": -1.0,
+          "z": -30.0
+        },
+        "radius": 3.0,
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.5,
+              "g": 0.3,
+              "b": 0.2
+            }
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 4.0,
+          "y": -2.0,
+          "z": -10.0
+        },
+        "radius": 1.0,
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.5,
+              "g": 0.3,
+              "b": 0.3
+            }
+          }
+        }
+      }
+    },
+    {
+      "Sphere": {
+        "center": {
+          "x": 0.0,
+          "y": -150.0,
+          "z": -30.0
+        },
+        "radius": 150.0,
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.5,
+              "g": 0.3,
+              "b": 0.3
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -26,6 +26,7 @@ pub trait Hittable {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Element {
     Sphere(Sphere),
+    Quad(Quad),
 //    Plane(Plane),
 }
 
@@ -34,6 +35,7 @@ impl Hittable for Element {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         match *self {
             Element::Sphere(ref s) => s.hit(ray, ray_t),
+            Element::Quad(ref q) => q.hit(ray, ray_t),
  //           Element::Plane(ref p) => p.hit(ray, t_min, t_max),
         }
     }
@@ -41,6 +43,7 @@ impl Hittable for Element {
     fn bounding_box(&self) -> Aabb {
         match *self {
             Element::Sphere(ref s) => s.bounding_box(),
+            Element::Quad(ref q) => q.bounding_box(),
         }
     }
 }
@@ -78,18 +81,16 @@ impl Hittable for Plane {
             let v = self.origin - ray.origin;
             let distance = v.dot(&self.normal) / denom;
 
-            if distance >= 0.0 {
-                if distance > ray_t.interval_min && distance < ray_t.interval_max {
-                    let p = ray.at(distance);
-                    let hit = HitRecord {
-                        t: distance,
-                        normal: -self.normal, //we need a minus here to get the defraction working, not sure why.....
-                        point: p,
-                        front_face: true,
-                        material: self.material,
-                    };
-                    return Some(hit);
-                }
+            if distance >= 0.0 && distance > ray_t.interval_min && distance < ray_t.interval_max {
+                let p = ray.at(distance);
+                let hit = HitRecord {
+                    t: distance,
+                    normal: -self.normal, //we need a minus here to get the defraction working, not sure why.....
+                    point: p,
+                    front_face: true,
+                    material: self.material,
+                };
+                return Some(hit);
             }
         }
         None // no hits found
@@ -101,22 +102,114 @@ impl Hittable for Plane {
     }
 }
 
-// Sphere element
+//Quad element
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Quad {
+    pub Q: Vec3,
+    pub u: Vec3,
+    pub v: Vec3,
+    pub material: Material,
+    // pub bbox: Aabb,
+    // TODO initialize the bounding box at object creation!
+}
 
+
+
+// Creating a new Sphere with a center and a radius
+impl Quad {
+    pub fn new(Q: Vec3, u: Vec3, v:Vec3, material: Material) -> Self {
+        Quad {
+            Q,
+            u,
+            v,
+            material,
+        }
+    }
+
+    //given the hit point in plane coordinates, return none if it is outside the primitive
+    pub fn is_interior(a: f64, b: f64) -> Option<Vec<f64>> {
+        if (a < 0.0) || (1.0 < a) || (b < 0.0) || (1.0 < b) {
+            return None
+        }
+
+        // we have this work around as we dont determine the u and v in the hitrecord yet
+        let mut result: Vec<f64> = Vec::new();
+        result.push(a);
+        result.push(b);
+
+        return Some(result);
+    }
+}
+
+impl Hittable for Quad {
+    fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
+        
+        //TODO: we should preload the values vor n, normal and dot in the constructor
+        let n: Vec3 = self.u.cross(&self.v);
+        let normal: Vec3 = n.normalized();
+        let D: f64 = normal.dot(&self.Q);
+        let w: Vec3 = n / n.dot(&n);
+
+        let denom = normal.dot(&ray.direction);
+
+        // no hits, as the ray is parallel to the plane
+        if denom.abs() < 0.000000001 {
+            return None
+        }
+
+        // return false if the hit point paramater t is outside the ray interval
+        let t: f64 = (D - normal.dot(&ray.origin)) / denom;
+        if !ray_t.contains(t) {
+            return None;
+        }
+
+        let intersection = ray.at(t);
+        let planar_hitpoint_vector: Vec3 = intersection - self.Q;
+        let alpha: f64 = w.dot(&planar_hitpoint_vector.cross(&self.v));
+        let beta: f64 = w.dot(&self.u.cross(&planar_hitpoint_vector));
+
+        match Quad::is_interior(alpha, beta) {
+            Some(_result) => {
+                // nothing needed here i think
+            },
+            _ => { 
+                //is not in the interior, so break
+                return None 
+            }
+        }
+
+        // we have a hit, so we return a hit record
+        return Some(HitRecord {
+            t,
+            normal, //TODO check normal (should be outward normal)
+            point: intersection,
+            front_face: ray.direction.dot(&normal) < 0.0,
+            material: self.material,
+        });
+
+    }
+    
+    fn bounding_box(&self) -> Aabb {
+        Aabb::new_from_points(self.Q, self.Q + self.u + self.v).pad()
+    }
+}
+
+// Sphere element
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
     pub material: Material,
+    // TODO initialize the bounding box at object creation!
 }
 
 // Creating a new Sphere with a center and a radius
 impl Sphere {
     pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
         Sphere {
-            center: center,
-            radius: radius,
-            material: material,
+            center,
+            radius,
+            material,
         }
     }
 }
@@ -126,8 +219,6 @@ impl Hittable for Sphere {
 
     // finding the hits for a given ray
     // based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
-
-
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         let l = ray.origin - self.center;
 

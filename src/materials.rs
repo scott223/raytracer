@@ -11,11 +11,16 @@ pub enum Material {
     Lambertian(Lambertian),
     Metal(Metal),
     Dielectric(Dielectric),
+    DiffuseLight(DiffuseLight),
 }
 
 // trait for a material that scatters
 pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Color)>;
+}
+
+pub trait Emmits {
+    fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color>;
 }
 
 // link the trait implementation to the materials
@@ -26,7 +31,38 @@ impl Scatterable for Material {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
             Material::Dielectric(d) => d.scatter(ray, hit_record),
+            Material::DiffuseLight(d) => None,
         }
+    }
+}
+
+impl Emmits for Material {
+    fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color> {
+        match self {
+            Material::Lambertian(l) => None,
+            Material::Metal(m) => None,
+            Material::Dielectric(d) => None,
+            Material::DiffuseLight(d) => d.emitted(ray, hit_record),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct DiffuseLight {
+    // albedo is defined as amount of color not absorbed
+    pub albedo: Color,
+}
+
+// create a new Lambertian material
+impl DiffuseLight {
+    pub fn new(albedo: Color) -> DiffuseLight {
+        DiffuseLight { albedo }
+    }
+}
+
+impl Emmits for DiffuseLight {
+    fn emitted(&self, _ray: &Ray, _hit_record: &HitRecord) -> Option<Color> {
+        Some(self.albedo)
     }
 }
 
