@@ -39,7 +39,9 @@ pub fn render(
     // create the BHV nodes based on the elements in the scene
     log::info!("Creating the BHV node tree");
     let mut objects: Vec<Element> = scene.elements.clone();
+
     // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
+
     let bhv_tree = BHVNode::new(&mut objects, 0, scene.elements.len());
 
     // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
@@ -175,9 +177,9 @@ fn ray_color(
         }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
-            let a = 0.5 * (ray.direction.y() + 1.0);
-            return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
-            //Color::new(0.0, 0.0, 0.0)
+            //let a = 0.5 * (ray.direction.y() + 1.0);
+            //return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
+            Color::new(0.0, 0.0, 0.0)
         }
     }
 } // fn ray_color

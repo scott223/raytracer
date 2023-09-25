@@ -1,6 +1,7 @@
 use std::ops::{Add, Neg, Sub, Mul, Div};
 use std::fmt;
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand::rngs::SmallRng;
 
 use serde::{Serialize, Deserialize};
 
@@ -23,10 +24,12 @@ impl Vec3 {
 
     // creates a random vector between a min and a max value
     pub fn new_random(val_min: f64, val_max: f64) -> Self {
+        let mut small_rng = SmallRng::from_entropy();
+        
         Vec3 {
-            x: rand::thread_rng().gen_range(val_min..val_max),
-            y: rand::thread_rng().gen_range(val_min..val_max),
-            z: rand::thread_rng().gen_range(val_min..val_max),           
+            x: small_rng.gen_range(val_min..val_max),
+            y: small_rng.gen_range(val_min..val_max),
+            z: small_rng.gen_range(val_min..val_max),           
         }
     }
 
@@ -42,10 +45,12 @@ impl Vec3 {
 
     // creates a random point on a unit disk (length <1.0, z = 0)
     pub fn new_random_in_unit_disk() -> Self {
+        let mut small_rng = SmallRng::from_entropy();
+
         loop {
             let v = Vec3::new(
-                rand::thread_rng().gen_range(-1.0..1.0),
-                rand::thread_rng().gen_range(-1.0..1.0),
+                small_rng.gen_range(-1.0..1.0),
+                small_rng.gen_range(-1.0..1.0),
                 0.0);
             if v.length_squared() < 1.0 {
                 return v;

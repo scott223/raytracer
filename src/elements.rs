@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::num::NonZeroI128;
 use crate::{materials::*, aabb::Aabb};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -82,7 +81,7 @@ impl Hittable for Triangle {
         let v0v1: Vec3 = self.v1 - self.v0;
         let v0v2: Vec3 = self.v2 - self.v0;
         let normal = v0v1.cross(&v0v2);
-        let area: f64 = normal.length();
+        // let area: f64 = normal.length();
 
         //step 1 - finding P
         let ndot_ray_rirection = normal.dot(&ray.direction);
@@ -284,7 +283,7 @@ impl Hittable for Quad {
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal, //TODO check normal (should be outward normal)
+            normal: if ray.direction.dot(&normal) < 0.0 { normal } else { -normal }, //TODO check normal (should be outward normal)
             point: intersection,
             front_face: ray.direction.dot(&normal) < 0.0,
             material: self.material,
@@ -415,6 +414,37 @@ mod tests {
     }
 
     #[test_log::test]
+    fn test_create_traingle() {
+        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
+        let t: Triangle = Triangle::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 2.0, 0.0), Vec3::new(2.0, 2.0, 0.0), m1);
+        assert_approx_eq!(t.v0, Vec3::new(0.0, 0.0, 0.0));
+        assert_approx_eq!(t.v1, Vec3::new(0.0, 2.0, 0.0));
+        assert_approx_eq!(t.v2, Vec3::new(2.0, 2.0, 0.0));
+    }
+
+
+    #[test_log::test]
+    fn test_hit_traingle() {
+        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
+        let t: Triangle = Triangle::new(Vec3::new(-2.0, -2.0, -5.0), 
+                                        Vec3::new(-2.0, 2.0, -5.0), 
+                                        Vec3::new(2.0, 2.0, -5.0), 
+                                        m1
+                                    );
+
+        let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
+        
+        match t.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
+            Some(hit) => {
+                assert_eq!(hit.t, 5.0);
+            },
+            _ => { 
+                panic!("Triangle should be hit")
+            }
+        }
+    }
+
+    #[test_log::test]
     fn test_create_sphere() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
         let s: Sphere = Sphere::new(Vec3::new(1.0, 2.0, -1.0), 2.0, m1);
@@ -454,9 +484,16 @@ mod tests {
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
         let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, -3.0), 1.0, m1);
 
-        if let Some(hit) = s.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
-            assert_eq!(hit.t, 2.0);
-            assert_eq!(hit.point, Vec3::new(0.0, 0.0, -2.0));
+        match s.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
+            Some(hit) => {
+                assert_eq!(hit.t, 2.0);
+                assert_eq!(hit.point, Vec3::new(0.0, 0.0, -2.0));
+            },
+            _ => { 
+                panic!("Sphere should be hit")
+            }
         }
     }
+
+
 }

@@ -31,7 +31,7 @@ impl Scatterable for Material {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
             Material::Dielectric(d) => d.scatter(ray, hit_record),
-            _ => None,
+            _ =>  None,
         }
     }
 }

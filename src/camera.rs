@@ -1,5 +1,6 @@
 use crate::{config::Config, ray::Ray, vec3::Vec3};
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand::rngs::SmallRng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
@@ -109,10 +110,10 @@ impl Camera {
     // generate a random point inside the box of -0.5 and +0.5 units * pixel size around the pixel center
     // TODO: this function now seems to take a lot of the time in a thread, so need to explore how to do this faster
     pub fn pixel_sample_square(self) -> Vec3 {
-        let mut rng = rand::thread_rng();
+        let mut small_rng = SmallRng::from_entropy();
 
-        let n1: f64 = rng.gen_range(-0.5..0.5);
-        let n2: f64 = rng.gen_range(-0.5..0.5);
+        let n1: f64 = small_rng.gen_range(-0.5..0.5);
+        let n2: f64 = small_rng.gen_range(-0.5..0.5);
 
         let point = Vec3::new(
             n1 * self.pixel_delta_u.x(),
