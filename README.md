@@ -3,7 +3,7 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 
 ## Ray tracing features
 - pixel by pixel raytracing with stochastic anti aliasing
-- various primitives (sphere, quadrilateral)
+- various primitives (triangle, quad, spheres
 - various materials (Lambertian, Metal, Glass, ...)
 - Bounded Volume Hierarchy (BHV) tree to accelerate intersection tracing
 - parallel multi-threaded rendering

@@ -31,7 +31,7 @@ impl Scatterable for Material {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
             Material::Dielectric(d) => d.scatter(ray, hit_record),
-            Material::DiffuseLight(d) => None,
+            _ => None,
         }
     }
 }
@@ -39,10 +39,8 @@ impl Scatterable for Material {
 impl Emmits for Material {
     fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color> {
         match self {
-            Material::Lambertian(l) => None,
-            Material::Metal(m) => None,
-            Material::Dielectric(d) => None,
             Material::DiffuseLight(d) => d.emitted(ray, hit_record),
+            _ => None,
         }
     }
 }

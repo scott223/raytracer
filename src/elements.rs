@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::num::NonZeroI128;
 use crate::{materials::*, aabb::Aabb};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -27,6 +28,7 @@ pub trait Hittable {
 pub enum Element {
     Sphere(Sphere),
     Quad(Quad),
+    Triangle(Triangle),
 //    Plane(Plane),
 }
 
@@ -36,6 +38,7 @@ impl Hittable for Element {
         match *self {
             Element::Sphere(ref s) => s.hit(ray, ray_t),
             Element::Quad(ref q) => q.hit(ray, ray_t),
+            Element::Triangle(ref t) => t.hit(ray, ray_t),
  //           Element::Plane(ref p) => p.hit(ray, t_min, t_max),
         }
     }
@@ -44,7 +47,109 @@ impl Hittable for Element {
         match *self {
             Element::Sphere(ref s) => s.bounding_box(),
             Element::Quad(ref q) => q.bounding_box(),
+            Element::Triangle(ref t) => t.bounding_box(),
         }
+    }
+}
+
+//Triangle element
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Triangle {
+    pub v0: Vec3,
+    pub v1: Vec3,
+    pub v2: Vec3,
+    pub material: Material,
+    // pub bbox: Aabb,
+    // TODO initialize the bounding box at object creation!
+}
+
+impl Triangle {
+    pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: Material) -> Self {
+        Triangle{
+            v0,
+            v1,
+            v2,
+            material,
+            //aabb TODO define the bounding box at creation time
+        }
+    }
+}
+
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution.html
+impl Hittable for Triangle {
+    fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
+        //compute the plane's normal
+        let v0v1: Vec3 = self.v1 - self.v0;
+        let v0v2: Vec3 = self.v2 - self.v0;
+        let normal = v0v1.cross(&v0v2);
+        let area: f64 = normal.length();
+
+        //step 1 - finding P
+        let ndot_ray_rirection = normal.dot(&ray.direction);
+
+        // check if the ray and the plane are parallel. if they are, no hit
+        if ndot_ray_rirection < 0.000001 {
+            return None;
+        }
+
+        // compute d parameter
+        let d: f64 = (normal * -1.0).dot(&self.v0);
+
+        // compute t
+        let t = -(normal.dot(&ray.origin) + d) / ndot_ray_rirection;
+
+        // check if t is inside the interval (before the camera, and closer than an earlier hit)
+        if !ray_t.contains(t) {
+            return None;
+        }
+
+        // compute the intersection point
+        let point: Vec3 = ray.at(t);
+
+        // inside-outside test
+
+        // edge 0
+        let edge0: Vec3 = self.v1 - self.v0;
+        let vp0: Vec3 = point - self.v0;
+        let c: Vec3 = edge0.cross(&vp0);
+        if normal.dot(&c) < 0.0 {
+            return None; // point is on the right side
+        }
+
+        // edge 1
+        let edge1: Vec3 = self.v2 - self.v1;
+        let vp1: Vec3 = point - self.v1;
+        let c: Vec3 = edge1.cross(&vp1);
+        if normal.dot(&c) < 0.0 {
+            return None; // point is on the right side
+        }
+
+        // edge 2
+        let edge2: Vec3 = self.v0 - self.v2;
+        let vp2: Vec3 = point - self.v2;
+        let c: Vec3 = edge2.cross(&vp2);
+        if normal.dot(&c) < 0.0 {
+            return None; // point is on the right side
+        }
+
+        // we have a hit, so we return a hit record
+        return Some(HitRecord {
+            t,
+            normal, //TODO check normal (should be outward normal)
+            point,
+            front_face: ray.direction.dot(&normal) < 0.0,
+            material: self.material,
+        });
+
+    }
+
+    // find the minimum xyz and max xyz coordinates and use for bounding box. add some padding as triangles are usually flat..
+    // https://stackoverflow.com/questions/39974191/triangle-bounding-box
+    fn bounding_box(&self) -> Aabb {
+        Aabb::new_from_points(
+            self.v0.min(self.v1.min(self.v2)), 
+            self.v0.max(self.v1.max(self.v2))
+        ).pad()
     }
 }
 
@@ -112,8 +217,6 @@ pub struct Quad {
     // pub bbox: Aabb,
     // TODO initialize the bounding box at object creation!
 }
-
-
 
 // Creating a new Sphere with a center and a radius
 impl Quad {

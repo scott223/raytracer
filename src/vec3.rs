@@ -143,6 +143,24 @@ impl Vec3 {
         Vec3::new(self.x()/l, self.y()/l, self.z()/l)
     }
 
+    // returns a vector that is made from the smallest components of the two vectors
+    pub fn min(&self, other: Vec3) -> Self {
+        Vec3 {
+            x: self.x().min(other.x()),
+            y: self.y().min(other.y()),
+            z: self.z().min(other.z()),
+        }
+    }
+
+    // returns a vector that is made from the smallest components of the two vectors
+    pub fn max(&self, other: Vec3) -> Self {
+        Vec3 {
+            x: self.x().max(other.x()),
+            y: self.y().max(other.y()),
+            z: self.z().max(other.z()),
+        }
+    }
+
 }
 
 // display trait
@@ -328,6 +346,24 @@ mod tests {
         assert!(p.z() < 1.01 && p.z() > -1.01);
 
         assert!(p.dot(&n) > 0.0);
+    }
+
+    #[test_log::test]
+    fn test_min() {
+        let n: Vec3 = Vec3::new(1.0, 2.0, 3.0);
+        let p: Vec3 = Vec3::new(4.0, 3.0, 2.0);
+
+        assert_approx_eq!(n.min(p),Vec3::new(1.0, 2.0, 2.0));
+        //assert!(p.near_zero());
+    }
+
+    #[test_log::test]
+    fn test_max() {
+        let n: Vec3 = Vec3::new(1.0, 2.0, 3.0);
+        let p: Vec3 = Vec3::new(4.0, 3.0, 2.0);
+
+        assert_approx_eq!(n.max(p),Vec3::new(4.0, 3.0, 3.0));
+        //assert!(p.near_zero());
     }
 
     #[test_log::test]

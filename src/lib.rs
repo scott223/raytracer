@@ -175,9 +175,9 @@ fn ray_color(
         }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
-            // let a = 0.5 * (ray.direction.y() + 1.0);
-            // return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
-            Color::new(0.0, 0.0, 0.0)
+            let a = 0.5 * (ray.direction.y() + 1.0);
+            return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
+            //Color::new(0.0, 0.0, 0.0)
         }
     }
 } // fn ray_color
