@@ -2,6 +2,7 @@ use std::ops::{Add, Neg, Sub, Mul, Div};
 use std::fmt;
 use rand::{Rng, SeedableRng};
 use rand::rngs::SmallRng;
+use rand::rngs::StdRng;
 
 use serde::{Serialize, Deserialize};
 
@@ -23,20 +24,20 @@ impl Vec3 {
     }
 
     // creates a random vector between a min and a max value
-    pub fn new_random(val_min: f64, val_max: f64) -> Self {
-        let mut small_rng = SmallRng::from_entropy();
+    pub fn new_random(val_min: f64, val_max: f64, rng: &mut StdRng) -> Self {
+        //let mut small_rng = SmallRng::from_entropy();
         
         Vec3 {
-            x: small_rng.gen_range(val_min..val_max),
-            y: small_rng.gen_range(val_min..val_max),
-            z: small_rng.gen_range(val_min..val_max),           
+            x: rng.gen_range(val_min..val_max),
+            y: rng.gen_range(val_min..val_max),
+            z: rng.gen_range(val_min..val_max),           
         }
     }
 
     // creates a vector within a unit sphere (lenght < 1.0)
-    pub fn new_random_unit_sphere() -> Self {
+    pub fn new_random_unit_sphere(rng: &mut StdRng) -> Self {
         loop {
-            let rv = Vec3::new_random(-1.0,1.0);
+            let rv = Vec3::new_random(-1.0,1.0, rng);
             if rv.length_squared() < 1.0 {
                 return rv
             }
@@ -59,13 +60,13 @@ impl Vec3 {
     }
 
     // creates a normalized random vector in the unit sphere (initial lenght < 1.0)
-    pub fn new_random_unit_vector() -> Self {
-        Vec3::new_random_unit_sphere().normalized()
+    pub fn new_random_unit_vector(rng: &mut StdRng) -> Self {
+        Vec3::new_random_unit_sphere(rng).normalized()
     }
 
     //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
-    pub fn new_random_on_hemisphere(normal: &Vec3) -> Self {
-        let rv = Vec3::new_random_unit_vector();
+    pub fn new_random_on_hemisphere(normal: &Vec3, rng: &mut StdRng) -> Self {
+        let rv = Vec3::new_random_unit_vector(rng);
         if rv.dot(&normal) > 0.0 { //in the same hemisphere
             return rv; 
         } else {
@@ -277,6 +278,8 @@ impl PartialEq for Vec3 {
 mod tests {
     use assert_approx_eq::assert_approx_eq;
     use crate::vec3::Vec3;
+    use rand::{Rng,SeedableRng};
+    use rand::rngs::StdRng;
 
     // Test creating a new vector with three rows, taking floats as an argument
     #[test_log::test]
@@ -304,7 +307,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random() {
-        let p: Vec3 = Vec3::new_random(-1.0, 1.0);
+        let p: Vec3 = Vec3::new_random(-1.0, 1.0, &mut StdRng::seed_from_u64(222));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
@@ -313,7 +316,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random_unit_sphere() {
-        let p: Vec3 = Vec3::new_random_unit_sphere();
+        let p: Vec3 = Vec3::new_random_unit_sphere(&mut StdRng::seed_from_u64(222));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
@@ -333,7 +336,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random_unit_vector() {
-        let p: Vec3 = Vec3::new_random_unit_vector();
+        let p: Vec3 = Vec3::new_random_unit_vector(&mut StdRng::seed_from_u64(222));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
@@ -344,7 +347,7 @@ mod tests {
     #[test_log::test]
     fn test_new_random_hemisphere() {
         let n: Vec3 = Vec3::new(0.0, 1.0, 0.0);
-        let p: Vec3 = Vec3::new_random_on_hemisphere(&n); // this is a unit vector with lenght = 1
+        let p: Vec3 = Vec3::new_random_on_hemisphere(&n, &mut StdRng::seed_from_u64(222)); // this is a unit vector with lenght = 1
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);

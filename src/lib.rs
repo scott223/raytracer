@@ -3,6 +3,8 @@ use image::{ImageBuffer, Rgb, RgbImage};
 use rayon::prelude::*;
 use std::error::Error;
 use std::time::Instant;
+use rand::{Rng,SeedableRng};
+use rand::rngs::StdRng;
 
 // Raytracer imports
 pub mod config;
@@ -56,7 +58,7 @@ pub fn render(
 
     // use Rayon parallel iterator to iterate over the bands and render per line
     let start = Instant::now();
-    bands.into_par_iter().for_each(|(i, band)| {
+    bands.into_iter().for_each(|(i, band)| {
         render_line(i as i64, band, &camera, &scene, &bhv_tree, &config);
     });
 
@@ -89,6 +91,8 @@ pub fn render_line(
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
     config: &Config,
 ) {
+    let mut rng: StdRng = StdRng::seed_from_u64(222);
+    
     for x in 0..config.img_width as usize {
         // start with black color
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
@@ -97,7 +101,7 @@ pub fn render_line(
         for _i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
             let ray = camera.get_prime_ray(x as i64, y);
-            color += ray_color(&scene, &bhv_tree, &config, &ray, config.max_depth);
+            color += ray_color(&scene, &bhv_tree, &config, &ray, config.max_depth, &mut rng);
         }
 
         // set pixel color, but first divide by the number of samples to get the average and return
@@ -114,6 +118,7 @@ fn ray_color(
     config: &Config,
     ray: &Ray,
     depth: usize,
+    rng: &mut StdRng,
 ) -> Color {
     if depth == 0 {
         // we ran out of depth iterations, so we return black
@@ -129,7 +134,7 @@ fn ray_color(
             let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
             // we hit something
             // we start with scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
-            match hit.material.scatter(ray, &hit) {
+            match hit.material.scatter(ray, &hit, rng) {
                 Some((scattered_ray, albedo)) => {
                     // see if there is a ray returned
                     match scattered_ray {
@@ -137,7 +142,7 @@ fn ray_color(
                             // there is a scattered ray, so lets get the color of that ray
                             // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                             let target_color: Color =
-                                ray_color(&scene, &bhv_tree, &config, &sr, depth - 1);
+                                ray_color(&scene, &bhv_tree, &config, &sr, depth - 1, rng);
 
                             // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                             color_from_scatter = Color::new(
