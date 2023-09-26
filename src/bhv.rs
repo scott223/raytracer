@@ -1,10 +1,12 @@
-use rand::Rng;
 use std::fmt::Debug;
 
 use crate::aabb::Aabb;
 use crate::elements::*;
 use crate::interval::Interval;
 use crate::ray::Ray;
+
+use rand::{Rng, SeedableRng};
+use rand::rngs::SmallRng;
 
 // this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
 // it will only have a left or a right object
@@ -61,7 +63,7 @@ impl BHVNode {
         } else {
             // we still have a few elements, so we need to create some more nodes and pass the elements
             // we randomize the axis that we sort on each time
-            let n = rand::thread_rng().gen_range(0..3);
+            let n = SmallRng::seed_from_u64(223).gen_range(0..3);
             log::info!("Sorting over {} axis", n);
             objects[start..end].sort_by(|a, b| {
                 a.bounding_box()

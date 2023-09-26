@@ -1,9 +1,9 @@
 use std::ops::{Add, Neg, Sub, Mul, Div};
 use std::fmt;
-use rand::{Rng, SeedableRng};
-use rand::rngs::SmallRng;
-use rand::rngs::StdRng;
 
+use rand::Rng;
+
+use rand_distr::Distribution;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -24,7 +24,7 @@ impl Vec3 {
     }
 
     // creates a random vector between a min and a max value
-    pub fn new_random(val_min: f64, val_max: f64, rng: &mut StdRng) -> Self {
+    pub fn new_random(val_min: f64, val_max: f64, rng: &mut impl Rng) -> Self {
         //let mut small_rng = SmallRng::from_entropy();
         
         Vec3 {
@@ -35,23 +35,25 @@ impl Vec3 {
     }
 
     // creates a vector within a unit sphere (lenght < 1.0)
-    pub fn new_random_unit_sphere(rng: &mut StdRng) -> Self {
-        loop {
-            let rv = Vec3::new_random(-1.0,1.0, rng);
-            if rv.length_squared() < 1.0 {
-                return rv
-            }
-        }
+    pub fn new_random_unit_sphere(rng: &mut impl Rng) -> Self {
+        let [x, y, z] = rand_distr::UnitSphere.sample(rng);
+        Self {x, y, z}  
+        
+        //loop {
+        //    let rv = Vec3::new_random(-1.0,1.0, rng);
+        //    if rv.length_squared() < 1.0 {
+        //        return rv
+        //    }
+        //}
     }
 
     // creates a random point on a unit disk (length <1.0, z = 0)
-    pub fn new_random_in_unit_disk() -> Self {
-        let mut small_rng = SmallRng::from_entropy();
-
+    pub fn new_random_in_unit_disk(rng: &mut impl Rng) -> Self {
+ 
         loop {
             let v = Vec3::new(
-                small_rng.gen_range(-1.0..1.0),
-                small_rng.gen_range(-1.0..1.0),
+                rng.gen_range(-1.0..1.0),
+                rng.gen_range(-1.0..1.0),
                 0.0);
             if v.length_squared() < 1.0 {
                 return v;
@@ -60,12 +62,12 @@ impl Vec3 {
     }
 
     // creates a normalized random vector in the unit sphere (initial lenght < 1.0)
-    pub fn new_random_unit_vector(rng: &mut StdRng) -> Self {
+    pub fn new_random_unit_vector(rng: &mut impl Rng) -> Self {
         Vec3::new_random_unit_sphere(rng).normalized()
     }
 
     //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
-    pub fn new_random_on_hemisphere(normal: &Vec3, rng: &mut StdRng) -> Self {
+    pub fn new_random_on_hemisphere(normal: &Vec3, rng: &mut impl Rng) -> Self {
         let rv = Vec3::new_random_unit_vector(rng);
         if rv.dot(&normal) > 0.0 { //in the same hemisphere
             return rv; 
@@ -278,7 +280,7 @@ impl PartialEq for Vec3 {
 mod tests {
     use assert_approx_eq::assert_approx_eq;
     use crate::vec3::Vec3;
-    use rand::{Rng,SeedableRng};
+    use rand::SeedableRng;
     use rand::rngs::StdRng;
 
     // Test creating a new vector with three rows, taking floats as an argument
@@ -316,7 +318,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random_unit_sphere() {
-        let p: Vec3 = Vec3::new_random_unit_sphere(&mut StdRng::seed_from_u64(222));
+        let p: Vec3 = Vec3::new_random_unit_sphere(&mut StdRng::seed_from_u64(223));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
@@ -326,7 +328,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random_in_unit_disk() {
-        let p: Vec3 = Vec3::new_random_in_unit_disk();
+        let p: Vec3 = Vec3::new_random_in_unit_disk(&mut StdRng::seed_from_u64(223));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);
@@ -336,7 +338,7 @@ mod tests {
 
     #[test_log::test]
     fn test_new_random_unit_vector() {
-        let p: Vec3 = Vec3::new_random_unit_vector(&mut StdRng::seed_from_u64(222));
+        let p: Vec3 = Vec3::new_random_unit_vector(&mut StdRng::seed_from_u64(223));
 
         assert!(p.x() < 1.01 && p.x() > -1.01);
         assert!(p.y() < 1.01 && p.y() > -1.01);

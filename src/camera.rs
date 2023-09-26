@@ -1,6 +1,6 @@
+use rand::Rng;
+
 use crate::{config::Config, ray::Ray, vec3::Vec3};
-use rand::{Rng, SeedableRng};
-use rand::rngs::SmallRng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
@@ -90,10 +90,10 @@ impl Camera {
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from
     // the camera defocus disk.
-    pub fn get_prime_ray(self, x: i64, y: i64) -> Ray {
+    pub fn get_prime_ray(self, x: i64, y: i64, rng: &mut impl Rng) -> Ray {
         
         // get a random point in the camera defocus disk to be used as an origin, or the camera center if the defocus angle <= 0 (this is for focus blur)
-        let p: Vec3 = Vec3::new_random_in_unit_disk();
+        let p: Vec3 = Vec3::new_random_in_unit_disk(rng);
         let disk_sample: Vec3 = self.camera_center + (self.defocus_disk_u * p.x()) + (self.defocus_disk_v * p.y());
         let ray_origin: Vec3 = if self.defocus_angle <= 0.0 { self.camera_center } else { disk_sample };
         //println!("origin {:?}", ray_origin);
@@ -101,7 +101,7 @@ impl Camera {
         // establish the the direction of the ray by taking a random sample from the square around the pixel center (this is for anti aliasing)
         let pixel_loc: Vec3 =
             self.pixel00_loc + (self.pixel_delta_u * x as f64) + (self.pixel_delta_v * y as f64);
-        let pixel_sample: Vec3 = pixel_loc + self.pixel_sample_square();
+        let pixel_sample: Vec3 = pixel_loc + self.pixel_sample_square(rng);
         let ray_direction: Vec3 = pixel_sample - ray_origin;
 
         Ray::new(ray_origin, ray_direction)
@@ -109,11 +109,10 @@ impl Camera {
 
     // generate a random point inside the box of -0.5 and +0.5 units * pixel size around the pixel center
     // TODO: this function now seems to take a lot of the time in a thread, so need to explore how to do this faster
-    pub fn pixel_sample_square(self) -> Vec3 {
-        let mut small_rng = SmallRng::from_entropy();
+    pub fn pixel_sample_square(self, rng: &mut impl Rng) -> Vec3 {
 
-        let n1: f64 = small_rng.gen_range(-0.5..0.5);
-        let n2: f64 = small_rng.gen_range(-0.5..0.5);
+        let n1: f64 = rng.gen_range(-0.5..0.5);
+        let n2: f64 = rng.gen_range(-0.5..0.5);
 
         let point = Vec3::new(
             n1 * self.pixel_delta_u.x(),

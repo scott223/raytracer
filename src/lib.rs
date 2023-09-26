@@ -1,10 +1,13 @@
 // Rust imports
 use image::{ImageBuffer, Rgb, RgbImage};
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
+
+use indicatif::ProgressBar;
+
 use rayon::prelude::*;
 use std::error::Error;
 use std::time::Instant;
-use rand::{Rng,SeedableRng};
-use rand::rngs::StdRng;
 
 // Raytracer imports
 pub mod config;
@@ -25,7 +28,7 @@ use color::Color;
 use config::{Config, Scene};
 use elements::Element;
 use interval::Interval;
-use materials::{Scatterable, Emmits};
+use materials::{Emmits, Scatterable};
 use ray::Ray;
 
 // fn render
@@ -55,11 +58,13 @@ pub fn render(
         .collect();
 
     log::info!("Starting render!");
+    let pb = ProgressBar::new(config.img_height as u64);
 
     // use Rayon parallel iterator to iterate over the bands and render per line
     let start = Instant::now();
-    bands.into_iter().for_each(|(i, band)| {
+    bands.into_par_iter().for_each(|(i, band)| {
         render_line(i as i64, band, &camera, &scene, &bhv_tree, &config);
+        pb.inc(1);
     });
 
     // create a new ImgBuf with width: img_width and height: img_y from the config
@@ -91,8 +96,8 @@ pub fn render_line(
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
     config: &Config,
 ) {
-    let mut rng: StdRng = StdRng::seed_from_u64(222);
-    
+    let mut rng = SmallRng::seed_from_u64(y as u64);
+
     for x in 0..config.img_width as usize {
         // start with black color
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
@@ -100,7 +105,7 @@ pub fn render_line(
         // loop through all the anti aliasing samples
         for _i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
-            let ray = camera.get_prime_ray(x as i64, y);
+            let ray = camera.get_prime_ray(x as i64, y, &mut rng);
             color += ray_color(&scene, &bhv_tree, &config, &ray, config.max_depth, &mut rng);
         }
 
@@ -118,7 +123,7 @@ fn ray_color(
     config: &Config,
     ray: &Ray,
     depth: usize,
-    rng: &mut StdRng,
+    rng: &mut impl Rng,
 ) -> Color {
     if depth == 0 {
         // we ran out of depth iterations, so we return black
@@ -165,16 +170,14 @@ fn ray_color(
             }
 
             let mut color_from_emmission = Color::new(0.0, 0.0, 0.0);
-            
-            match hit.material.emitted(ray, &hit) {
 
+            match hit.material.emitted(ray, &hit) {
                 Some(c) => {
                     color_from_emmission = c;
-                },
+                }
                 _ => {
                     //
                 }
-
             }
 
             // return the emmission and the scatter color

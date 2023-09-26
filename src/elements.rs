@@ -235,11 +235,7 @@ impl Quad {
         }
 
         // we have this work around as we dont determine the u and v in the hitrecord yet
-        let mut result: Vec<f64> = Vec::new();
-        result.push(a);
-        result.push(b);
-
-        return Some(result);
+       Some(vec![a, b])
     }
 }
 

@@ -2,9 +2,8 @@ use crate::color::Color;
 use crate::elements::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use rand::{Rng, rngs::ThreadRng};
-use rand::rngs::StdRng;
 
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -17,7 +16,7 @@ pub enum Material {
 
 // trait for a material that scatters
 pub trait Scatterable {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut StdRng) -> Option<(Option<Ray>, Color)>;
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)>;
 }
 
 pub trait Emmits {
@@ -27,7 +26,7 @@ pub trait Emmits {
 // link the trait implementation to the materials
 // we now assume every material scatters, so each material needs a scatter function
 impl Scatterable for Material {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut StdRng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
         match self {
             Material::Lambertian(l) => l.scatter(ray, hit_record, rng),
             Material::Metal(m) => m.scatter(ray, hit_record, rng),
@@ -81,7 +80,7 @@ impl Lambertian {
 
 impl Scatterable for Lambertian {
     // create a scattered ray, randomized but with a lambartian distribution around the normal
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut StdRng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
         let mut new_direction = hit_record.normal + Vec3::new_random_unit_vector(rng); //lambertian distribution
 
         // if the direction is almost zero, scatter to the normal
@@ -116,7 +115,7 @@ fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
 
 impl Scatterable for Metal {
     // create a reflected ray
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut StdRng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
         // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
         let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal)
             + Vec3::new_random_unit_vector(rng) * self.fuzz;
@@ -167,7 +166,7 @@ impl Dielectric {
 
 // source: Ray tracing in one Weekend
 impl Scatterable for Dielectric {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut StdRng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
         //let mut rng = rand::thread_rng();
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
         let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
