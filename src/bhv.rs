@@ -24,7 +24,7 @@ impl BHVNode {
 
         if object_span == 1 {
             // we just have one element, so we can add that as a final node
-            println!(
+            log::info!(
                 "one element left, returning that element as a final node. object n: {}",
                 start
             );

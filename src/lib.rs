@@ -76,7 +76,7 @@ pub fn render(
             let pixel = img.get_pixel_mut(x as u32, y as u32);
             *pixel = pixels[(y * config.img_width as usize) + x]
                 .clamp() // clamp to max 1.0 and min 0.0
-                .linear_to_gamma(2.0) // apply the gamma correction
+                .linear_to_gamma(2.2) // apply the gamma correction
                 .to_rgb(); // and transform to rgb space
         }
     }
@@ -149,6 +149,9 @@ fn ray_color(
                             let target_color: Color =
                                 ray_color(&scene, &bhv_tree, &config, &sr, depth - 1, rng);
 
+                            let scattering_pdf = hit.material.scattering_pdf(ray, &hit, &sr);
+                            let pdf = scattering_pdf;
+
                             // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                             color_from_scatter = Color::new(
                                 albedo.r * target_color.r,
@@ -185,9 +188,9 @@ fn ray_color(
         }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
-            //let a = 0.5 * (ray.direction.y() + 1.0);
-            //return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
-            Color::new(0.0, 0.0, 0.0)
+            let a = 0.5 * (ray.direction.y() + 1.0);
+            return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
+            //Color::new(0.0, 0.0, 0.0)
         }
     }
 } // fn ray_color

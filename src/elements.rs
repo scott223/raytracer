@@ -84,10 +84,10 @@ impl Hittable for Triangle {
         // let area: f64 = normal.length();
 
         //step 1 - finding P
-        let ndot_ray_rirection = normal.dot(&ray.direction);
+        let ndot_ray_direction = normal.dot(&ray.direction);
 
         // check if the ray and the plane are parallel. if they are, no hit
-        if ndot_ray_rirection < 0.000001 {
+        if ndot_ray_direction < 0.000001 {
             return None;
         }
 
@@ -95,7 +95,7 @@ impl Hittable for Triangle {
         let d: f64 = (normal * -1.0).dot(&self.v0);
 
         // compute t
-        let t = -(normal.dot(&ray.origin) + d) / ndot_ray_rirection;
+        let t = -(normal.dot(&ray.origin) + d) / ndot_ray_direction;
 
         // check if t is inside the interval (before the camera, and closer than an earlier hit)
         if !ray_t.contains(t) {

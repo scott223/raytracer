@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::color::Color;
 use crate::elements::HitRecord;
 use crate::ray::Ray;
@@ -17,6 +19,7 @@ pub enum Material {
 // trait for a material that scatters
 pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)>;
+    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
 pub trait Emmits {
@@ -32,6 +35,15 @@ impl Scatterable for Material {
             Material::Metal(m) => m.scatter(ray, hit_record, rng),
             Material::Dielectric(d) => d.scatter(ray, hit_record, rng),
             _ =>  None,
+        }
+    }
+
+    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
+        match self {
+            Material::Lambertian(l) => l.scattering_pdf(ray, hit_record, scattered_ray),
+            Material::Metal(m) => m.scattering_pdf(ray, hit_record, scattered_ray),
+            Material::Dielectric(d) => d.scattering_pdf(ray, hit_record, scattered_ray),
+            _ =>  1.0,
         }
     }
 }
@@ -93,6 +105,11 @@ impl Scatterable for Lambertian {
 
         Some((Some(scattered), self.albedo))
     }
+
+    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
+        let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
+        if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
+    }
 }
 
 // Metal material, with a fuzz factor. Metal reflects all rays in a predictable way (normal reflection)
@@ -128,6 +145,11 @@ impl Scatterable for Metal {
             // return no ray, as the ray is absorbed by the material (due to fuzz factor)
             Some((None, self.albedo))
         }
+    }
+
+    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
+        let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
+        if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
     }
 }
 
@@ -188,6 +210,12 @@ impl Scatterable for Dielectric {
             Some((Some(refracted_ray), albedo))
         }
     }
+
+    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
+        let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
+        if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
+    }
+    
 }
 
 

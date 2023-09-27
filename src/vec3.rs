@@ -63,7 +63,7 @@ impl Vec3 {
 
     // creates a normalized random vector in the unit sphere (initial lenght < 1.0)
     pub fn new_random_unit_vector(rng: &mut impl Rng) -> Self {
-        Vec3::new_random_unit_sphere(rng).normalized()
+        Vec3::new_random_unit_sphere(rng) //this is already normalized
     }
 
     //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
