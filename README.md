@@ -5,13 +5,16 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 - pixel by pixel raytracing with stochastic anti aliasing
 - various primitives (triangle, quad, spheres)
 - various materials (Lambertian, Metal, Glass, ...)
-- Bounded Volume Hierarchy (BHV) tree to accelerate intersection tracing
+- Bounded Hierarchy Volumes (BHV) tree to accelerate intersection tracing
 - parallel multi-threaded rendering
 - shadow acne prevention
 - gamma correction
 - configurable depth of focus
 - scene and configuration input from JSON
 - ...
+
+## todo's
+- rename BHV to BVH...
 
 ## Credits / references
 - Raytracing in One Weekend (https://raytracing.github.io/books/RayTracingInOneWeekend.html)

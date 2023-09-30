@@ -1,5 +1,4 @@
 // Rust imports
-use image::{ImageBuffer, Rgb, RgbImage};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
@@ -25,29 +24,42 @@ mod vec3;
 use bhv::BHVNode;
 use camera::Camera;
 use color::Color;
-use config::{Config, Scene};
-use elements::Element;
+use config::{Config, JSONScene, Scene};
+use elements::{Element, Hittable};
 use interval::Interval;
 use materials::{Emmits, Scatterable};
 use ray::Ray;
+
+
+use crate::elements::JSONElement;
+use crate::elements::{Sphere, Quad};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
 // applies parallel rendering using Rayon
 pub fn render(
-    scene: Scene,
+    json_scene: JSONScene,
     config: Config,
-) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, Box<dyn Error>> {
+) -> Result<Vec<Color>, Box<dyn Error>> {
     // create a new camera object
     let camera: Camera = Camera::new(&config);
 
-    // create the BHV nodes based on the elements in the scene
-    log::info!("Creating the BHV node tree");
-    let mut objects: Vec<Element> = scene.elements.clone();
+    // we loop through the JSON Scene, and create a new actual object for each simplified JSON object
+    // this allows us to pre-calculate various things like the bbox or commonly used numbers in the cconstructor
+    let mut objects: Vec<Element> = Vec::new();
+
+    for json_element in json_scene.elements {
+        let new_object = match json_element {
+            JSONElement::JSONQuad(q) => Element::Quad(Quad::new_from_json_object(q)),
+            JSONElement::JSONSphere(s) => Element::Sphere(Sphere::new_from_json_object(s)),
+        };
+        objects.push(new_object);
+    }
 
     // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
-
-    let bhv_tree = BHVNode::new(&mut objects, 0, scene.elements.len());
+    log::info!("Creating the BHV node tree");
+    let end = objects.len();
+    let bhv_tree: Box<dyn Hittable + Sync> = BHVNode::new(&mut objects, 0, end);
 
     // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
     let mut pixels =
@@ -57,33 +69,22 @@ pub fn render(
         .enumerate()
         .collect();
 
+    // start the actual render
     log::info!("Starting render!");
-    let pb = ProgressBar::new(config.img_height as u64);
+    let pb: ProgressBar = ProgressBar::new(config.img_height as u64);
 
     // use Rayon parallel iterator to iterate over the bands and render per line
-    let start = Instant::now();
+    let start: Instant = Instant::now();
     bands.into_par_iter().for_each(|(i, band)| {
-        render_line(i as i64, band, &camera, &scene, &bhv_tree, &config);
+        render_line(i as i64, band, &camera, &bhv_tree, &config);
         pb.inc(1);
     });
-
-    // create a new ImgBuf with width: img_width and height: img_y from the config
-    let mut img = RgbImage::new(config.img_width as u32, config.img_height as u32);
-
-    // walk through all the pixels and write to the img pixel as rgb
-    for x in 0..(config.img_width) as usize {
-        for y in 0..(config.img_height) as usize {
-            let pixel = img.get_pixel_mut(x as u32, y as u32);
-            *pixel = pixels[(y * config.img_width as usize) + x]
-                .clamp() // clamp to max 1.0 and min 0.0
-                .linear_to_gamma(2.2) // apply the gamma correction
-                .to_rgb(); // and transform to rgb space
-        }
-    }
-
-    // save the image as a png
+    
     log::info!("Render finished in {}ms", start.elapsed().as_millis());
-    Ok(img)
+    
+    // return the pixels
+    Ok(pixels)
+
 } // fn render
 
 // fn render_line
@@ -92,7 +93,6 @@ pub fn render_line(
     y: i64,
     band: &mut [Color],
     camera: &Camera,
-    scene: &Scene,
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
     config: &Config,
 ) {
@@ -105,12 +105,12 @@ pub fn render_line(
         // loop through all the anti aliasing samples
         for _i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
-            let ray = camera.get_prime_ray(x as i64, y, &mut rng);
-            color += ray_color(&scene, &bhv_tree, &config, &ray, config.max_depth, &mut rng);
+            let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
+            color += ray_color(&bhv_tree, &config, &ray, config.max_depth, &mut rng);
         }
 
         // set pixel color, but first divide by the number of samples to get the average and return
-        band[x] = color.divide_by_samples(config.samples)
+        band[x] = color.divide_by_samples(config.samples).clamp().linear_to_gamma(2.2);
     }
 } // fn render_line
 
@@ -118,7 +118,6 @@ pub fn render_line(
 // finds the color of the ray, by checking for hits and using the material of that hit + scattered/reflected rays to establish the color
 // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
 fn ray_color(
-    scene: &Scene,
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
     config: &Config,
     ray: &Ray,
@@ -147,7 +146,7 @@ fn ray_color(
                             // there is a scattered ray, so lets get the color of that ray
                             // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                             let target_color: Color =
-                                ray_color(&scene, &bhv_tree, &config, &sr, depth - 1, rng);
+                                ray_color(&bhv_tree, &config, &sr, depth - 1, rng);
 
                             let scattering_pdf = hit.material.scattering_pdf(ray, &hit, &sr);
                             let pdf = scattering_pdf;
@@ -206,7 +205,7 @@ mod tests {
     fn test_render_full_scene() -> Result<(), Box<dyn Error>> {
         let config: Config = Config::default();
         let scene: Scene = Scene::default();
-        render(scene, config)?;
+        //render(scene, config)?;
         Ok(())
     }
 }

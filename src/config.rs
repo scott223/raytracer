@@ -7,7 +7,7 @@ use crate::materials::*;
 
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct Config {
     pub img_width: f64,
     pub img_height: f64,
@@ -48,7 +48,13 @@ impl Default for Config {
     }
 }
 
+
 #[derive(Serialize, Deserialize, Debug)]
+pub struct JSONScene {
+    pub elements: Vec<JSONElement>,
+}
+
+#[derive(Debug)]
 pub struct Scene {
     pub elements: Vec<Element>,
 }

@@ -5,14 +5,25 @@ use std::fmt;
 pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
+    pub inv_dir: Vec3,
 }
 
 // Creating a new Ray with a origin and a direction (normalized)
 impl Ray {
     pub fn new(origin: Vec3, direction: Vec3) -> Self {
+        
+        let dir_norm = direction.normalized();
+
+        let inverted_direction = Vec3::new(
+            1.0 / dir_norm.x(),
+            1.0 / dir_norm.y(),
+            1.0 / dir_norm.z()
+        );
+
         Ray {
             origin,
             direction: direction.normalized(),
+            inv_dir: inverted_direction,
         }
     }
 

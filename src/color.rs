@@ -2,6 +2,12 @@ use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use serde::{Deserialize, Serialize};
 
+pub struct Rgb {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Color {
     pub r: f64,
@@ -42,14 +48,14 @@ impl Color {
         Color::new(self.r.powf(1.0/correction), self.g.powf(1.0/correction), self.b.powf(1.0/correction))
     }
 
-    //to image::Rgb<u8>, first clamp to max 1.0 and min 0.0. so we dont overflow
-    pub fn to_rgb(&self) -> image::Rgb<u8> {
+    //to Rgb, first clamp to max 1.0 and min 0.0. so we dont overflow
+    pub fn to_rgb(&self) -> Rgb {
         let c = self.clamp();
-        image::Rgb([
-            (c.r * 255.0) as u8,
-            (c.g * 255.0) as u8,
-            (c.b * 255.0) as u8,
-        ])
+        Rgb {
+            r: (c.r * 255.0) as u8,
+            g: (c.g * 255.0) as u8,
+            b: (c.b * 255.0) as u8,
+        }
     }
 }
 
@@ -186,8 +192,8 @@ mod tests {
     fn test_to_rgb() {
         let c = Color::new(1.2, 0.0, 0.5).to_rgb();
 
-        assert_eq!(c[0], 255);
-        assert_eq!(c[1], 0);
-        assert_eq!(c[2], 127);
+        assert_eq!(c.r, 255);
+        assert_eq!(c.g, 0);
+        assert_eq!(c.b, 127);
     }
 }

@@ -135,6 +135,8 @@ impl Hittable for BHVNode {
         // check for a hit in the left path first
         let left_hit = self.left.hit(ray, ray_t);
 
+        //TODO we can do the next part smoother, where we immediatly do the right hit too (adjust the interval before) and then just make one match statement
+
         match left_hit {
             Some(lh) => {
                 //there is a hit on the left path, so lets adjust the interval and see if we have one closer by on the right

@@ -12,7 +12,18 @@ pub struct Aabb {
     z: Interval,
 }
 
+impl Default for Aabb {
+    fn default() -> Self  {
+        Aabb {
+            x: Interval { interval_min: 0.0, interval_max:0.0 },
+            y: Interval { interval_min: 0.0, interval_max:0.0 },
+            z: Interval { interval_min: 0.0, interval_max:0.0 },
+        }
+    }
+}
+
 impl Aabb {
+    
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
         Aabb { x, y, z }
     }
@@ -60,15 +71,11 @@ impl Aabb {
     // checks if we have a hit with the aabb, in a given interval
     pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
         for a in 0..3 as usize {
-            //println!("a: {}", a);
-            let inv_d: f64 = 1.0 / ray.direction.axis(a);
-            let orig: f64 = ray.origin.axis(a);
-
-            let mut t0: f64 = (self.axis(a).interval_min - orig) * inv_d;
-            let mut t1: f64 = (self.axis(a).interval_max - orig) * inv_d;
+            let mut t0: f64 = (self.axis(a).interval_min - ray.origin.axis(a)) * ray.inv_dir.axis(a);
+            let mut t1: f64 = (self.axis(a).interval_max - ray.origin.axis(a)) * ray.inv_dir.axis(a);
 
             // we need to swap t0 and t1
-            if inv_d < 0.0 {
+            if ray.inv_dir.axis(a) < 0.0 {
                 mem::swap(&mut t0, &mut t1);
             }
             //println!("inv_d: {}, t0: {}, t1: {}", inv_d, t0, t1);

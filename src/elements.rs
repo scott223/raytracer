@@ -22,13 +22,21 @@ pub trait Hittable {
     fn bounding_box(&self) -> Aabb;
 }
 
-// enum for all the different elements
+// enum for all the different elements, simplified JSON representation
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum JSONElement {
+    JSONSphere(JSONSphere),
+    JSONQuad(JSONQuad),
+    //Triangle(Triangle),
+}
+
+
+// enum for all the different elements
+#[derive(Debug, Clone, Copy)]
 pub enum Element {
     Sphere(Sphere),
     Quad(Quad),
     Triangle(Triangle),
-//    Plane(Plane),
 }
 
 // matching the hit function with the hittable trait for each type of element
@@ -207,24 +215,56 @@ impl Hittable for Plane {
 }
 
 //Quad element
+
+// simplified JSON version of the quad
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct JSONQuad {
+    pub Q: Vec3,
+    pub u: Vec3,
+    pub v: Vec3,
+    pub material: Material,
+}
+
+// actual quad element
+#[derive(Debug, Clone, Copy)]
 pub struct Quad {
     pub Q: Vec3,
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
-    // pub bbox: Aabb,
-    // TODO initialize the bounding box at object creation!
+
+    //following fields are used for every hit calculation, so we pre-calculate in the constructor
+    pub n: Vec3,
+    pub normal: Vec3,
+    pub D: f64,
+    pub w: Vec3,
+    pub bbox: Aabb,
 }
 
-// Creating a new Sphere with a center and a radius
+
 impl Quad {
+    pub fn new_from_json_object(json_quad: JSONQuad) -> Self {
+        Quad::new(json_quad.Q, json_quad.u, json_quad.v, json_quad.material)
+    }
+    
+    // Creating a new Quad with lower left point Q and vectors u and v
     pub fn new(Q: Vec3, u: Vec3, v:Vec3, material: Material) -> Self {
+        
+        let n: Vec3 = u.cross(&v);
+        let normal: Vec3 = n.normalized();
+        let D: f64 = normal.dot(&Q);
+        let w: Vec3 = n / n.dot(&n);
+        
         Quad {
             Q,
             u,
             v,
+            n,
+            normal,
+            D,
+            w,
             material,
+            bbox: Aabb::new_from_points(Q, Q + u + v).pad(),
         }
     }
 
@@ -241,14 +281,8 @@ impl Quad {
 
 impl Hittable for Quad {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        
-        //TODO: we should preload the values vor n, normal and dot in the constructor
-        let n: Vec3 = self.u.cross(&self.v);
-        let normal: Vec3 = n.normalized();
-        let D: f64 = normal.dot(&self.Q);
-        let w: Vec3 = n / n.dot(&n);
 
-        let denom = normal.dot(&ray.direction);
+        let denom = self.normal.dot(&ray.direction);
 
         // no hits, as the ray is parallel to the plane
         if denom.abs() < 0.000000001 {
@@ -256,15 +290,15 @@ impl Hittable for Quad {
         }
 
         // return false if the hit point paramater t is outside the ray interval
-        let t: f64 = (D - normal.dot(&ray.origin)) / denom;
+        let t: f64 = (self.D - self.normal.dot(&ray.origin)) / denom;
         if !ray_t.contains(t) {
             return None;
         }
 
         let intersection = ray.at(t);
         let planar_hitpoint_vector: Vec3 = intersection - self.Q;
-        let alpha: f64 = w.dot(&planar_hitpoint_vector.cross(&self.v));
-        let beta: f64 = w.dot(&self.u.cross(&planar_hitpoint_vector));
+        let alpha: f64 = self.w.dot(&planar_hitpoint_vector.cross(&self.v));
+        let beta: f64 = self.w.dot(&self.u.cross(&planar_hitpoint_vector));
 
         match Quad::is_interior(alpha, beta) {
             Some(_result) => {
@@ -279,35 +313,59 @@ impl Hittable for Quad {
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal: if ray.direction.dot(&normal) < 0.0 { normal } else { -normal }, //TODO check normal (should be outward normal)
+            normal: if ray.direction.dot(&self.normal) < 0.0 { self.normal } else { -self.normal }, //TODO check normal (should be outward normal)
             point: intersection,
-            front_face: ray.direction.dot(&normal) < 0.0,
+            front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
         });
 
     }
     
     fn bounding_box(&self) -> Aabb {
-        Aabb::new_from_points(self.Q, self.Q + self.u + self.v).pad()
+        //Aabb::new_from_points(self.Q, self.Q + self.u + self.v).pad()
+        
+        //we now calculate the bbox on initialization, so we can just return the field
+        self.bbox
     }
 }
 
 // Sphere element
+
+// simplified JSON representation of the Sphere
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct JSONSphere {
+    pub center: Vec3,
+    pub radius: f64,
+    pub material: Material,
+}
+
+// the actual sphere element
+#[derive(Debug, Clone, Copy)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
     pub material: Material,
-    // TODO initialize the bounding box at object creation!
+    pub bbox: Aabb,
 }
 
 // Creating a new Sphere with a center and a radius
 impl Sphere {
+    
+    // create a new sphere based on the JSON object
+    pub fn new_from_json_object(json_sphere: JSONSphere) -> Self {
+        Sphere::new(json_sphere.center, json_sphere.radius, json_sphere.material)
+    }
+    
+    // create a new sphere
     pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
+        let rvec = Vec3::new(radius, radius, radius);
+        let bbox = Aabb::new_from_points(center - rvec, center + rvec);
+        
         Sphere {
             center,
             radius,
             material,
+            bbox,
         }
     }
 }
@@ -368,8 +426,10 @@ impl Hittable for Sphere {
 
     // construct an axis aligned bounding box Aabb for a sphere
     fn bounding_box(&self) -> Aabb {
-        let rvec = Vec3::new(self.radius, self.radius, self.radius);
-        Aabb::new_from_points(self.center - rvec, self.center + rvec)
+        //let rvec = Vec3::new(self.radius, self.radius, self.radius);
+        //Aabb::new_from_points(self.center - rvec, self.center + rvec)
+
+        self.bbox
     }
 }
 
