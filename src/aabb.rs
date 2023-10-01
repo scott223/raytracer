@@ -78,7 +78,6 @@ impl Aabb {
             if ray.inv_dir.axis(a) < 0.0 {
                 mem::swap(&mut t0, &mut t1);
             }
-            //println!("inv_d: {}, t0: {}, t1: {}", inv_d, t0, t1);
 
             let mut check_int: Interval = ray_t.clone();
 
@@ -96,7 +95,7 @@ impl Aabb {
         }
 
         // we have a hit with the aabb, so return true
-        return true;
+        true
     }
 }
 

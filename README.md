@@ -15,6 +15,7 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 
 ## todo's
 - rename BHV to BVH...
+- jittering sampling
 
 ## Credits / references
 - Raytracing in One Weekend (https://raytracing.github.io/books/RayTracingInOneWeekend.html)

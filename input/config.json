@@ -1,20 +1,20 @@
 {
-  "img_width": 800.0,
+  "img_width": 600.0,
   "img_height": 600.0,
   "camera_center": {
     "x": 278.0,
     "y": 278.0,
-    "z": -200.0
+    "z": -800.0
   },
   "camera_look_at": {
     "x": 278.0,
     "y": 278.0,
     "z": 0.0
   },
-  "camera_fov_vertical": 60.0,
+  "camera_fov_vertical": 40.0,
   "camera_defocus_angle": 0.0,
-  "camera_focus_dist": 1.0,
-  "samples": 16,
+  "camera_focus_dist": 800.0,
+  "samples": 32,
   "max_depth": 4,
   "sky_color": {
     "r": 0.3,

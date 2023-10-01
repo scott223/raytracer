@@ -6,6 +6,7 @@ use rand::Rng;
 use rand_distr::Distribution;
 use serde::{Serialize, Deserialize};
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Vec3 {
     x: f64,

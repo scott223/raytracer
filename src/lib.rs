@@ -20,6 +20,7 @@ mod interval;
 mod materials;
 mod ray;
 mod vec3;
+mod mat4;
 
 use bhv::BHVNode;
 use camera::Camera;
@@ -30,9 +31,11 @@ use interval::Interval;
 use materials::{Emmits, Scatterable};
 use ray::Ray;
 
-
-use crate::elements::JSONElement;
+use crate::elements::{JSONElement, Triangle};
 use crate::elements::{Sphere, Quad};
+
+use crate::materials::{Material, Lambertian};
+use crate::vec3::Vec3;
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -49,11 +52,12 @@ pub fn render(
     let mut objects: Vec<Element> = Vec::new();
 
     for json_element in json_scene.elements {
-        let new_object = match json_element {
-            JSONElement::JSONQuad(q) => Element::Quad(Quad::new_from_json_object(q)),
-            JSONElement::JSONSphere(s) => Element::Sphere(Sphere::new_from_json_object(s)),
-        };
-        objects.push(new_object);
+        match json_element {
+            JSONElement::JSONQuad(q) => q.add_as_element(&mut objects),
+            JSONElement::JSONSphere(s) => s.add_as_element(&mut objects),
+            JSONElement::JSONTriangle(t) => t.add_as_element(&mut objects),
+            JSONElement::JSONBox(b) => b.add_as_element(&mut objects),
+        }
     }
 
     // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
@@ -171,6 +175,7 @@ fn ray_color(
                 }
             }
 
+            //now its time for emission
             let mut color_from_emmission = Color::new(0.0, 0.0, 0.0);
 
             match hit.material.emitted(ray, &hit) {
@@ -187,9 +192,9 @@ fn ray_color(
         }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
-            let a = 0.5 * (ray.direction.y() + 1.0);
-            return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
-            //Color::new(0.0, 0.0, 0.0)
+            //let a = 0.5 * (ray.direction.y() + 1.0);
+            //return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
+            Color::new(0.0, 0.0, 0.0)
         }
     }
 } // fn ray_color

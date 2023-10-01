@@ -71,8 +71,12 @@ impl DiffuseLight {
 }
 
 impl Emmits for DiffuseLight {
-    fn emitted(&self, _ray: &Ray, _hit_record: &HitRecord) -> Option<Color> {
-        Some(self.albedo)
+    fn emitted(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<Color> {
+        if hit_record.front_face {
+            Some(self.albedo)
+        } else {
+            None
+        }
     }
 }
 
@@ -218,4 +222,4 @@ impl Scatterable for Dielectric {
     
 }
 
-
+//TODO Tests

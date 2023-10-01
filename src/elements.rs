@@ -1,8 +1,8 @@
-use std::fmt::Debug;
-use crate::{materials::*, aabb::Aabb};
+use crate::interval::Interval;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::interval::Interval;
+use crate::{aabb::Aabb, materials::*};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
@@ -27,9 +27,9 @@ pub trait Hittable {
 pub enum JSONElement {
     JSONSphere(JSONSphere),
     JSONQuad(JSONQuad),
-    //Triangle(Triangle),
+    JSONTriangle(JSONTriangle),
+    JSONBox(JSONBox),
 }
-
 
 // enum for all the different elements
 #[derive(Debug, Clone, Copy)]
@@ -46,7 +46,6 @@ impl Hittable for Element {
             Element::Sphere(ref s) => s.hit(ray, ray_t),
             Element::Quad(ref q) => q.hit(ray, ray_t),
             Element::Triangle(ref t) => t.hit(ray, ray_t),
- //           Element::Plane(ref p) => p.hit(ray, t_min, t_max),
         }
     }
 
@@ -61,23 +60,52 @@ impl Hittable for Element {
 
 //Triangle element
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct JSONTriangle {
+    pub v0: Vec3,
+    pub v1: Vec3,
+    pub v2: Vec3,
+    pub material: Material,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Triangle {
     pub v0: Vec3,
     pub v1: Vec3,
     pub v2: Vec3,
     pub material: Material,
-    // pub bbox: Aabb,
-    // TODO initialize the bounding box at object creation!
+    pub bbox: Aabb,
+}
+
+impl JSONTriangle {
+    pub fn add_as_element(&self, objects: &mut Vec<Element>) {
+        let triangle = Element::Triangle(Triangle::new(
+            self.v0,
+            self.v1,
+            self.v2,
+            self.material,
+        ));
+
+        objects.push(triangle);
+    }
 }
 
 impl Triangle {
+    pub fn new_from_json_object(json_triangle: JSONTriangle) -> Self {
+        Triangle::new(
+            json_triangle.v0,
+            json_triangle.v1,
+            json_triangle.v2,
+            json_triangle.material,
+        )
+    }
+
     pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: Material) -> Self {
-        Triangle{
+        Triangle {
             v0,
             v1,
             v2,
             material,
-            //aabb TODO define the bounding box at creation time
+            bbox: Aabb::new_from_points(v0.min(v1.min(v2)), v0.max(v1.max(v2))).pad(),
         }
     }
 }
@@ -147,70 +175,16 @@ impl Hittable for Triangle {
             front_face: ray.direction.dot(&normal) < 0.0,
             material: self.material,
         });
-
     }
 
     // find the minimum xyz and max xyz coordinates and use for bounding box. add some padding as triangles are usually flat..
     // https://stackoverflow.com/questions/39974191/triangle-bounding-box
     fn bounding_box(&self) -> Aabb {
-        Aabb::new_from_points(
-            self.v0.min(self.v1.min(self.v2)), 
-            self.v0.max(self.v1.max(self.v2))
-        ).pad()
-    }
-}
-
-// Plane element
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub struct Plane {
-    pub origin: Vec3,
-    pub normal: Vec3,
-    pub material: Material,
-}
-
-// Creating a new Plane with an origin and a normal (unit vector) (planes have infinite size)
-impl Plane {
-    #[allow(dead_code)]
-    pub fn new(origin: Vec3, normal: Vec3, material: Material) -> Self {
-        Plane {
-            origin,
-            normal: normal.normalized(),
-            material,
-        }
-    }
-}
-
-// finding the hits for a given ray
-// return a HitRecord, that contains the position on the ray, the point of the hit & the material
-// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
-impl Hittable for Plane {
-    fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        // get the denominator
-        let denom = self.normal.dot(&ray.direction);
-
-        // check if larger than zero, and positive
-        if denom > 1e-6 {
-            let v = self.origin - ray.origin;
-            let distance = v.dot(&self.normal) / denom;
-
-            if distance >= 0.0 && distance > ray_t.interval_min && distance < ray_t.interval_max {
-                let p = ray.at(distance);
-                let hit = HitRecord {
-                    t: distance,
-                    normal: -self.normal, //we need a minus here to get the defraction working, not sure why.....
-                    point: p,
-                    front_face: true,
-                    material: self.material,
-                };
-                return Some(hit);
-            }
-        }
-        None // no hits found
-    }
-
-    fn bounding_box(&self) -> Aabb {
-        // TODO, will need to figure out how to add a bounding box for an infinite plane
-        todo!();
+        // Aabb::new_from_points(
+        //    self.v0.min(self.v1.min(self.v2)),
+        //    self.v0.max(self.v1.max(self.v2))
+        //).pad()
+        self.bbox
     }
 }
 
@@ -223,6 +197,13 @@ pub struct JSONQuad {
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
+}
+
+impl JSONQuad {
+    pub fn add_as_element(&self, objects: &mut Vec<Element>) {
+        let object = Element::Quad(Quad::new(self.Q, self.u, self.v, self.material));
+        objects.push(object);
+    }
 }
 
 // actual quad element
@@ -241,20 +222,18 @@ pub struct Quad {
     pub bbox: Aabb,
 }
 
-
 impl Quad {
     pub fn new_from_json_object(json_quad: JSONQuad) -> Self {
         Quad::new(json_quad.Q, json_quad.u, json_quad.v, json_quad.material)
     }
-    
+
     // Creating a new Quad with lower left point Q and vectors u and v
-    pub fn new(Q: Vec3, u: Vec3, v:Vec3, material: Material) -> Self {
-        
+    pub fn new(Q: Vec3, u: Vec3, v: Vec3, material: Material) -> Self {
         let n: Vec3 = u.cross(&v);
         let normal: Vec3 = n.normalized();
         let D: f64 = normal.dot(&Q);
         let w: Vec3 = n / n.dot(&n);
-        
+
         Quad {
             Q,
             u,
@@ -271,22 +250,21 @@ impl Quad {
     //given the hit point in plane coordinates, return none if it is outside the primitive
     pub fn is_interior(a: f64, b: f64) -> Option<Vec<f64>> {
         if (a < 0.0) || (1.0 < a) || (b < 0.0) || (1.0 < b) {
-            return None
+            return None;
         }
 
         // we have this work around as we dont determine the u and v in the hitrecord yet
-       Some(vec![a, b])
+        Some(vec![a, b])
     }
 }
 
 impl Hittable for Quad {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-
         let denom = self.normal.dot(&ray.direction);
 
         // no hits, as the ray is parallel to the plane
-        if denom.abs() < 0.000000001 {
-            return None
+        if denom.abs() < f64::EPSILON {
+            return None;
         }
 
         // return false if the hit point paramater t is outside the ray interval
@@ -303,40 +281,78 @@ impl Hittable for Quad {
         match Quad::is_interior(alpha, beta) {
             Some(_result) => {
                 // nothing needed here i think
-            },
-            _ => { 
+            }
+            _ => {
                 //is not in the interior, so break
-                return None 
+                return None;
             }
         }
 
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal: if ray.direction.dot(&self.normal) < 0.0 { self.normal } else { -self.normal }, //TODO check normal (should be outward normal)
+            normal: if ray.direction.dot(&self.normal) < 0.0 {
+                self.normal
+            } else {
+                -self.normal
+            }, //TODO check normal (should be outward normal)
             point: intersection,
             front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
         });
-
     }
-    
+
     fn bounding_box(&self) -> Aabb {
         //Aabb::new_from_points(self.Q, self.Q + self.u + self.v).pad()
-        
+
         //we now calculate the bbox on initialization, so we can just return the field
         self.bbox
     }
 }
 
-// Sphere element
+// Box element
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct JSONBox {
+    pub a: Vec3,
+    pub b: Vec3,
+    pub material: Material,
+}
+
+impl JSONBox {
+    pub fn add_as_element(&self, objects: &mut Vec<Element>) {
+        // Construct the two opposite vertices with the minimum and maximum coordinates.
+        let min: Vec3 = Vec3::new(self.a.x().min(self.b.x()), self.a.y().min(self.b.y()), self.a.z().min(self.b.z()));
+        let max: Vec3 = Vec3::new(self.a.x().max(self.b.x()), self.a.y().max(self.b.y()), self.a.z().max(self.b.z()));
+
+        let dx: Vec3 = Vec3::new(max.x() - min.x(), 0., 0.);
+        let dy: Vec3 = Vec3::new(0., max.y() - min.y(), 0.);
+        let dz: Vec3 = Vec3::new(0., 0., max.z() - min.z());
+        
+        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), max.z()),  dx,  dy, self.material))); // front
+        objects.push(Element::Quad(Quad::new(Vec3::new(max.x(), min.y(), max.z()), -dz,  dy, self.material))); // right
+        objects.push(Element::Quad(Quad::new(Vec3::new(max.x(), min.y(), min.z()), -dx,  dy, self.material))); // back
+        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), min.z()),  dz,  dy, self.material))); // left
+        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), max.y(), max.z()),  dx, -dz, self.material))); // top
+        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), min.z()),  dx,  dz, self.material))); // bottom
+
+    }
+}
+
+// Sphere element
 // simplified JSON representation of the Sphere
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct JSONSphere {
     pub center: Vec3,
     pub radius: f64,
     pub material: Material,
+}
+
+impl JSONSphere {
+    pub fn add_as_element(&self, objects: &mut Vec<Element>) {
+        let object = Element::Sphere(Sphere::new(self.center, self.radius, self.material));
+        objects.push(object);
+    }
 }
 
 // the actual sphere element
@@ -350,17 +366,16 @@ pub struct Sphere {
 
 // Creating a new Sphere with a center and a radius
 impl Sphere {
-    
     // create a new sphere based on the JSON object
     pub fn new_from_json_object(json_sphere: JSONSphere) -> Self {
         Sphere::new(json_sphere.center, json_sphere.radius, json_sphere.material)
     }
-    
+
     // create a new sphere
     pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
         let rvec = Vec3::new(radius, radius, radius);
         let bbox = Aabb::new_from_points(center - rvec, center + rvec);
-        
+
         Sphere {
             center,
             radius,
@@ -372,7 +387,6 @@ impl Sphere {
 
 // implementing hte hittable traits for the Sphere
 impl Hittable for Sphere {
-
     // finding the hits for a given ray
     // based on: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
@@ -414,7 +428,11 @@ impl Hittable for Sphere {
 
                 return Some(HitRecord {
                     t: nearest_root,
-                    normal: if front_face { outward_normal } else { -outward_normal },
+                    normal: if front_face {
+                        outward_normal
+                    } else {
+                        -outward_normal
+                    },
                     point: p,
                     front_face: front_face,
                     material: self.material,
@@ -424,11 +442,8 @@ impl Hittable for Sphere {
         None // no hits found
     }
 
-    // construct an axis aligned bounding box Aabb for a sphere
+    // return the axis aligned bounding box Aabb for a sphere
     fn bounding_box(&self) -> Aabb {
-        //let rvec = Vec3::new(self.radius, self.radius, self.radius);
-        //Aabb::new_from_points(self.center - rvec, self.center + rvec)
-
         self.bbox
     }
 }
@@ -442,59 +457,36 @@ mod tests {
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]
-    fn test_create_plane() {
+    fn test_create_triangle() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let p: Plane = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -2.0, 0.0), m1);
-        assert_approx_eq!(p.origin, Vec3::new(0.0, -2.5, 0.0));
-        assert_approx_eq!(p.normal, Vec3::new(0.0, -1.0, 0.0));
-    }
-
-    #[test_log::test]
-    fn test_hit_plane() {
-        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 1.0));
-        let p: Plane = Plane::new(Vec3::new(0.0, 0.0, 5.0), Vec3::new(0.0, 0.0, 1.0), m1);
-
-        if let Some(hit) = p.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
-            assert_eq!(hit.t, 5.0);
-            assert_eq!(hit.point, Vec3::new(0.0, 0.0, 5.0));
-        }
-
-        let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, -1.0, 0.0));
-        let p: Plane = Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), m1);
-
-        if let Some(hit) = p.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
-            assert_eq!(hit.t, 2.5);
-            assert_eq!(hit.point, Vec3::new(0.0, -2.5, 0.0));
-        }
-    }
-
-    #[test_log::test]
-    fn test_create_traingle() {
-        let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let t: Triangle = Triangle::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 2.0, 0.0), Vec3::new(2.0, 2.0, 0.0), m1);
+        let t: Triangle = Triangle::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(0.0, 2.0, 0.0),
+            Vec3::new(2.0, 2.0, 0.0),
+            m1,
+        );
         assert_approx_eq!(t.v0, Vec3::new(0.0, 0.0, 0.0));
         assert_approx_eq!(t.v1, Vec3::new(0.0, 2.0, 0.0));
         assert_approx_eq!(t.v2, Vec3::new(2.0, 2.0, 0.0));
     }
 
-
     #[test_log::test]
     fn test_hit_traingle() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let t: Triangle = Triangle::new(Vec3::new(-2.0, -2.0, -5.0), 
-                                        Vec3::new(-2.0, 2.0, -5.0), 
-                                        Vec3::new(2.0, 2.0, -5.0), 
-                                        m1
-                                    );
+        let t: Triangle = Triangle::new(
+            Vec3::new(-2.0, -2.0, -5.0),
+            Vec3::new(-2.0, 2.0, -5.0),
+            Vec3::new(2.0, 2.0, -5.0),
+            m1,
+        );
 
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
-        
+
         match t.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
             Some(hit) => {
                 assert_eq!(hit.t, 5.0);
-            },
-            _ => { 
+            }
+            _ => {
                 panic!("Triangle should be hit")
             }
         }
@@ -513,25 +505,25 @@ mod tests {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
         let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, 0.0), 1.0, m1);
 
-        assert_approx_eq!(s.bounding_box().axis(0).interval_min,-1.0);
-        assert_approx_eq!(s.bounding_box().axis(0).interval_max,1.0);
+        assert_approx_eq!(s.bounding_box().axis(0).interval_min, -1.0);
+        assert_approx_eq!(s.bounding_box().axis(0).interval_max, 1.0);
 
-        assert_approx_eq!(s.bounding_box().axis(1).interval_min,-1.0);
-        assert_approx_eq!(s.bounding_box().axis(1).interval_max,1.0);
+        assert_approx_eq!(s.bounding_box().axis(1).interval_min, -1.0);
+        assert_approx_eq!(s.bounding_box().axis(1).interval_max, 1.0);
 
-        assert_approx_eq!(s.bounding_box().axis(2).interval_min,-1.0);
-        assert_approx_eq!(s.bounding_box().axis(2).interval_max,1.0);
+        assert_approx_eq!(s.bounding_box().axis(2).interval_min, -1.0);
+        assert_approx_eq!(s.bounding_box().axis(2).interval_max, 1.0);
 
         let s2: Sphere = Sphere::new(Vec3::new(2.0, 1.0, -1.0), 1.0, m1);
 
-        assert_approx_eq!(s2.bounding_box().axis(0).interval_min,1.0);
-        assert_approx_eq!(s2.bounding_box().axis(0).interval_max,3.0);
+        assert_approx_eq!(s2.bounding_box().axis(0).interval_min, 1.0);
+        assert_approx_eq!(s2.bounding_box().axis(0).interval_max, 3.0);
 
-        assert_approx_eq!(s2.bounding_box().axis(1).interval_min,0.0);
-        assert_approx_eq!(s2.bounding_box().axis(1).interval_max,2.0);
-         
-        assert_approx_eq!(s2.bounding_box().axis(2).interval_min,-2.0);
-        assert_approx_eq!(s2.bounding_box().axis(2).interval_max,0.0);                   
+        assert_approx_eq!(s2.bounding_box().axis(1).interval_min, 0.0);
+        assert_approx_eq!(s2.bounding_box().axis(1).interval_max, 2.0);
+
+        assert_approx_eq!(s2.bounding_box().axis(2).interval_min, -2.0);
+        assert_approx_eq!(s2.bounding_box().axis(2).interval_max, 0.0);
     }
 
     #[test_log::test]
@@ -544,12 +536,10 @@ mod tests {
             Some(hit) => {
                 assert_eq!(hit.t, 2.0);
                 assert_eq!(hit.point, Vec3::new(0.0, 0.0, -2.0));
-            },
-            _ => { 
+            }
+            _ => {
                 panic!("Sphere should be hit")
             }
         }
     }
-
-
 }
