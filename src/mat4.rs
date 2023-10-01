@@ -70,6 +70,20 @@ impl Mul<Vec4> for Mat4 {
     }
 }
 
+// multiply with a Vec3 
+impl Add<Mat4> for Mat4 {
+    type Output = Mat4;
+
+    fn add(self, m: Mat4) -> Mat4 {
+        Mat4 {
+            data: [[self.data[0][0] + m.data[0][0], self.data[0][1] + m.data[0][1], self.data[0][2] + m.data[0][2], self.data[0][3] + m.data[0][3]],
+                  [self.data[1][0] + m.data[1][0], self.data[1][1] + m.data[1][1], self.data[1][2] + m.data[1][2], self.data[1][3] + m.data[1][3]],
+                  [self.data[2][0] + m.data[2][0], self.data[2][1] + m.data[2][1], self.data[2][2] + m.data[2][2], self.data[2][3] + m.data[2][3]],
+                  [self.data[3][0] + m.data[3][0], self.data[3][1] + m.data[3][1], self.data[3][2] + m.data[3][2], self.data[3][3] + m.data[3][3]]]
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_approx_eq::assert_approx_eq;
@@ -138,5 +152,44 @@ mod tests {
         assert_approx_eq!(pp.w, 0.0 * 1.0 + 0. * 2.0 + 0. * 3. + 1. * 1.);
     }
 
+    #[test_log::test]
+    fn test_add() {
 
+        let m: Mat4 = Mat4::new_identity();
+        let v: Mat4 = Mat4::new_identity();
+
+        let p = m + v;
+
+        assert_approx_eq!(p.data[0][0], 2.0);
+        assert_approx_eq!(p.data[1][1], 2.0);
+        assert_approx_eq!(p.data[2][2], 2.0);
+        assert_approx_eq!(p.data[3][3], 2.0);
+
+        assert_approx_eq!(p.data[1][0], 0.);
+        assert_approx_eq!(p.data[2][3], 0.);
+        assert_approx_eq!(p.data[1][3], 0.);
+        assert_approx_eq!(p.data[3][1], 0.);
+
+        let mm: Mat4 = Mat4 {
+            data: [[1., 2., 3., 4.],
+                  [2., 3., 4., 5.],
+                  [3., 4., 5., 6.],
+                  [0., 0., 0., 1.]]
+        };
+
+        let vv: Mat4 = Mat4 {
+            data: [[1., 2., 3., 4.],
+                  [2., 3., 4., 5.],
+                  [3., 4., 5., 6.],
+                  [0., 0., 0., 1.]]
+        };
+
+        let pp: Mat4 = mm + vv;
+
+        assert_approx_eq!(pp.data[0][0], 2.0);
+        assert_approx_eq!(pp.data[1][1], 6.0);
+        assert_approx_eq!(pp.data[2][2], 10.0);
+        assert_approx_eq!(pp.data[3][3], 2.0);
+
+    }
 }
