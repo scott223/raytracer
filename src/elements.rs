@@ -95,6 +95,9 @@ pub struct Triangle {
     pub v0: Vec3,
     pub v1: Vec3,
     pub v2: Vec3,
+    pub v0v1: Vec3,
+    pub v0v2: Vec3,
+    pub normal: Vec3,
     pub material: Material,
     pub bbox: Aabb,
 }
@@ -109,6 +112,8 @@ impl JSONTriangle {
 
 impl Triangle {
     pub fn new_from_json_object(json_triangle: JSONTriangle) -> Self {
+
+        
         Triangle::new(
             json_triangle.v0,
             json_triangle.v1,
@@ -120,10 +125,17 @@ impl Triangle {
     // find the minimum xyz and max xyz coordinates and use for bounding box. add some padding as triangles are usually flat..
     // https://stackoverflow.com/questions/39974191/triangle-bounding-box
     pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: Material) -> Self {
+        let v0v1: Vec3 = v1 - v0;
+        let v0v2: Vec3 = v2 - v0;
+        let normal = v0v1.cross(&v0v2).normalized();
+        
         Triangle {
             v0,
             v1,
             v2,
+            v0v1,
+            v0v2,
+            normal,
             material,
             bbox: Aabb::new_from_points(v0.min(v1.min(v2)), v0.max(v1.max(v2))).pad(),
         }
@@ -134,13 +146,11 @@ impl Triangle {
 impl Hittable for Triangle {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         //compute the plane's normal
-        let v0v1: Vec3 = self.v1 - self.v0;
-        let v0v2: Vec3 = self.v2 - self.v0;
-        let normal = v0v1.cross(&v0v2);
+
         // let area: f64 = normal.length();
 
         //step 1 - finding P
-        let ndot_ray_direction = normal.dot(&ray.direction);
+        let ndot_ray_direction = self.normal.dot(&ray.direction);
 
         // check if the ray and the plane are parallel. if they are, no hit
         if ndot_ray_direction < 0.000001 {
@@ -148,10 +158,10 @@ impl Hittable for Triangle {
         }
 
         // compute d parameter
-        let d: f64 = (normal * -1.0).dot(&self.v0);
+        let d: f64 = (self.normal * -1.0).dot(&self.v0);
 
         // compute t
-        let t = -(normal.dot(&ray.origin) + d) / ndot_ray_direction;
+        let t = -(self.normal.dot(&ray.origin) + d) / ndot_ray_direction;
 
         // check if t is inside the interval (before the camera, and closer than an earlier hit)
         if !ray_t.contains(t) {
@@ -167,7 +177,7 @@ impl Hittable for Triangle {
         let edge0: Vec3 = self.v1 - self.v0;
         let vp0: Vec3 = point - self.v0;
         let c: Vec3 = edge0.cross(&vp0);
-        if normal.dot(&c) < 0.0 {
+        if self.normal.dot(&c) < 0.0 {
             return None; // point is on the right side
         }
 
@@ -175,7 +185,7 @@ impl Hittable for Triangle {
         let edge1: Vec3 = self.v2 - self.v1;
         let vp1: Vec3 = point - self.v1;
         let c: Vec3 = edge1.cross(&vp1);
-        if normal.dot(&c) < 0.0 {
+        if self.normal.dot(&c) < 0.0 {
             return None; // point is on the right side
         }
 
@@ -183,16 +193,16 @@ impl Hittable for Triangle {
         let edge2: Vec3 = self.v0 - self.v2;
         let vp2: Vec3 = point - self.v2;
         let c: Vec3 = edge2.cross(&vp2);
-        if normal.dot(&c) < 0.0 {
+        if self.normal.dot(&c) < 0.0 {
             return None; // point is on the right side
         }
 
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal: normal, //TODO check normal (should be outward normal)
+            normal: self.normal,
             point,
-            front_face: ray.direction.dot(&normal) < 0.0,
+            front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
         });
     }

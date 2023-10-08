@@ -97,11 +97,13 @@ impl Lambertian {
 impl Scatterable for Lambertian {
     // create a scattered ray, randomized but with a lambartian distribution around the normal
     fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
+        //lambertian distribution, assume the normal is normalized
+        // reflect from both sides
         let mut new_direction: Vec3 = if hit_record.front_face {
-            hit_record.normal + Vec3::new_random_unit_vector(rng) //lambertian distribution
+            hit_record.normal 
         } else {
-            -hit_record.normal + Vec3::new_random_unit_vector(rng) //lambertian distribution 
-        };
+            -hit_record.normal  
+        } + Vec3::new_random_unit_vector(rng);
 
         // if the direction is almost zero, scatter to the normal
         if new_direction.near_zero() {
