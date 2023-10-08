@@ -1,4 +1,5 @@
 use crate::interval::Interval;
+use crate::mat4::{Mat4, Vec4};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
@@ -23,7 +24,7 @@ pub trait Hittable {
 }
 
 // enum for all the different elements, simplified JSON representation
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum JSONElement {
     JSONSphere(JSONSphere),
     JSONQuad(JSONQuad),
@@ -37,6 +38,28 @@ pub enum Element {
     Sphere(Sphere),
     Quad(Quad),
     Triangle(Triangle),
+}
+
+// element transformations
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Transpose {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Rotate {
+    pub theta_x: f64,
+    pub theta_y: f64,
+    pub theta_z: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Scale {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 // matching the hit function with the hittable trait for each type of element
@@ -78,12 +101,7 @@ pub struct Triangle {
 
 impl JSONTriangle {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
-        let triangle = Element::Triangle(Triangle::new(
-            self.v0,
-            self.v1,
-            self.v2,
-            self.material,
-        ));
+        let triangle = Element::Triangle(Triangle::new(self.v0, self.v1, self.v2, self.material));
 
         objects.push(triangle);
     }
@@ -99,6 +117,8 @@ impl Triangle {
         )
     }
 
+    // find the minimum xyz and max xyz coordinates and use for bounding box. add some padding as triangles are usually flat..
+    // https://stackoverflow.com/questions/39974191/triangle-bounding-box
     pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: Material) -> Self {
         Triangle {
             v0,
@@ -170,20 +190,14 @@ impl Hittable for Triangle {
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal, //TODO check normal (should be outward normal)
+            normal: normal, //TODO check normal (should be outward normal)
             point,
             front_face: ray.direction.dot(&normal) < 0.0,
             material: self.material,
         });
     }
 
-    // find the minimum xyz and max xyz coordinates and use for bounding box. add some padding as triangles are usually flat..
-    // https://stackoverflow.com/questions/39974191/triangle-bounding-box
     fn bounding_box(&self) -> Aabb {
-        // Aabb::new_from_points(
-        //    self.v0.min(self.v1.min(self.v2)),
-        //    self.v0.max(self.v1.max(self.v2))
-        //).pad()
         self.bbox
     }
 }
@@ -291,11 +305,7 @@ impl Hittable for Quad {
         // we have a hit, so we return a hit record
         return Some(HitRecord {
             t,
-            normal: if ray.direction.dot(&self.normal) < 0.0 {
-                self.normal
-            } else {
-                -self.normal
-            }, //TODO check normal (should be outward normal)
+            normal: self.normal,
             point: intersection,
             front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
@@ -312,30 +322,118 @@ impl Hittable for Quad {
 
 // Box element
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JSONBox {
     pub a: Vec3,
     pub b: Vec3,
     pub material: Material,
+    pub transpose: Option<Transpose>,
+    pub rotate: Option<Rotate>,
+    pub scale: Option<Scale>,
 }
 
 impl JSONBox {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
         // Construct the two opposite vertices with the minimum and maximum coordinates.
-        let min: Vec3 = Vec3::new(self.a.x().min(self.b.x()), self.a.y().min(self.b.y()), self.a.z().min(self.b.z()));
-        let max: Vec3 = Vec3::new(self.a.x().max(self.b.x()), self.a.y().max(self.b.y()), self.a.z().max(self.b.z()));
+        let min: Vec3 = Vec3::new(
+            self.a.x().min(self.b.x()),
+            self.a.y().min(self.b.y()),
+            self.a.z().min(self.b.z()),
+        );
+        let max: Vec3 = Vec3::new(
+            self.a.x().max(self.b.x()),
+            self.a.y().max(self.b.y()),
+            self.a.z().max(self.b.z()),
+        );
 
         let dx: Vec3 = Vec3::new(max.x() - min.x(), 0., 0.);
         let dy: Vec3 = Vec3::new(0., max.y() - min.y(), 0.);
         let dz: Vec3 = Vec3::new(0., 0., max.z() - min.z());
-        
-        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), max.z()),  dx,  dy, self.material))); // front
-        objects.push(Element::Quad(Quad::new(Vec3::new(max.x(), min.y(), max.z()), -dz,  dy, self.material))); // right
-        objects.push(Element::Quad(Quad::new(Vec3::new(max.x(), min.y(), min.z()), -dx,  dy, self.material))); // back
-        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), min.z()),  dz,  dy, self.material))); // left
-        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), max.y(), max.z()),  dx, -dz, self.material))); // top
-        objects.push(Element::Quad(Quad::new(Vec3::new(min.x(), min.y(), min.z()),  dx,  dz, self.material))); // bottom
 
+        // create a cube with size 2x2x2 centered around the origin
+        // make mutable as we are going to apply the transformations
+        let mut vertices: [Vec3; 8] = [
+            Vec3::new(1., -1., 1.),   //0
+            Vec3::new(1., -1., -1.),  //1
+            Vec3::new(1., 1., -1.),   //2
+            Vec3::new(1., 1., 1.),    //3
+            Vec3::new(-1., -1., 1.),  //4
+            Vec3::new(-1., -1., -1.), //5
+            Vec3::new(-1., 1., -1.),  //6
+            Vec3::new(-1., 1., 1.),   //7
+        ];
+
+        //define the triangles
+        let triangles: Vec<[usize; 3]> = vec![
+            [1, 6, 5], // front face
+            [1, 2, 6],
+            [5, 6, 7], // right face
+            [5, 7, 4],
+            [0, 3, 2], // left face
+            [0, 2, 1],
+            [2, 3, 7], // top face
+            [2, 7, 6]
+            ];
+
+        // scale with the size of the cube/rectangle according to the json min max points
+        let tm_scale = Mat4::scale(dx.x() / 2., dy.y() / 2., dz.z() / 2.);
+        vertices
+            .iter_mut()
+            .for_each(|v| *v = (tm_scale * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+
+        // apply the scaling as per the scaling transformation input from the JSON
+        if let Some(s) = self.scale {
+            let tm_scale = Mat4::scale(s.x, s.y , s.z);
+            vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm_scale * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+        }
+
+        // apply the rotation as per the rotate transformation input from the JSON
+        if let Some(r) = self.rotate {
+            let tm_rotate_x = Mat4::rotate_x(r.theta_x);
+            let tm_rotate_y = Mat4::rotate_y(r.theta_y);
+            let tm_rotate_z = Mat4::rotate_z(r.theta_z);
+
+            // apply the rotations
+            vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm_rotate_x * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+            vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm_rotate_y * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+            vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm_rotate_z * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+        }
+
+        // transpose to the point as per the JSON min/max points
+        let tm_transpose = Mat4::transpose(
+            min.x() + dx.x() / 2.0,
+            min.y() + dy.y() / 2.0,
+            min.z() + dz.z() / 2.0,
+        );
+        vertices
+            .iter_mut()
+            .for_each(|v| *v = (tm_transpose * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+
+        // transpose as per the transpose tranformation input from the JSON
+        if let Some(t) = self.transpose {
+            let tm = Mat4::transpose(t.x, t.y, t.z);
+            vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+        }
+
+        // add the triangles as objects
+        for t in triangles {
+            objects.push(Element::Triangle(Triangle::new(
+                vertices[t[0]],
+                vertices[t[1]],
+                vertices[t[2]],
+                self.material,
+            )));
+        }
     }
 }
 
@@ -346,11 +444,20 @@ pub struct JSONSphere {
     pub center: Vec3,
     pub radius: f64,
     pub material: Material,
+    pub transpose: Option<Transpose>,
 }
 
 impl JSONSphere {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
-        let object = Element::Sphere(Sphere::new(self.center, self.radius, self.material));
+        let mut center: Vec3 = self.center;
+
+        // Transpose transformation
+        if let Some(t) = self.transpose {
+            let tm = Mat4::transpose(t.x, t.y, t.z);
+            center = (tm * Vec4::new_from_vec3(center, 1.0)).to_vec3();
+        }
+
+        let object = Element::Sphere(Sphere::new(center, self.radius, self.material));
         objects.push(object);
     }
 }

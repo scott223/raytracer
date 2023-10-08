@@ -63,7 +63,7 @@ pub struct DiffuseLight {
     pub albedo: Color,
 }
 
-// create a new Lambertian material
+// create a new Diffuse light material
 impl DiffuseLight {
     pub fn new(albedo: Color) -> DiffuseLight {
         DiffuseLight { albedo }
@@ -97,7 +97,11 @@ impl Lambertian {
 impl Scatterable for Lambertian {
     // create a scattered ray, randomized but with a lambartian distribution around the normal
     fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
-        let mut new_direction = hit_record.normal + Vec3::new_random_unit_vector(rng); //lambertian distribution
+        let mut new_direction: Vec3 = if hit_record.front_face {
+            hit_record.normal + Vec3::new_random_unit_vector(rng) //lambertian distribution
+        } else {
+            -hit_record.normal + Vec3::new_random_unit_vector(rng) //lambertian distribution 
+        };
 
         // if the direction is almost zero, scatter to the normal
         if new_direction.near_zero() {

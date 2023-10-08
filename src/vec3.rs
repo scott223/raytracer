@@ -257,7 +257,7 @@ impl Div<Vec3> for Vec3 {
     }
 }
 
-// Devide by a f64
+// Divide by a f64
 impl Div<f64> for Vec3 {
     type Output = Vec3;
 

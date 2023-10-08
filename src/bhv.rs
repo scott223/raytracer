@@ -20,14 +20,14 @@ impl BHVNode {
     pub fn new(objects: &mut Vec<Element>, start: usize, end: usize) -> Box<dyn Hittable + Sync> {
         // see how many elements we still have left
         let object_span: usize = end - start;
-        log::info!("start: {}, end: {}, span: {}", start, end, object_span);
+        //log::info!("start: {}, end: {}, span: {}", start, end, object_span);
 
         if object_span == 1 {
             // we just have one element, so we can add that as a final node
-            log::info!(
-                "one element left, returning that element as a final node. object n: {}",
-                start
-            );
+            // log::info!(
+            //    "one element left, returning that element as a final node. object n: {}",
+            //    start
+            //);
             return Box::new(objects[start]);
         } else if object_span == 2 {
             // we have two items, lets see which one comes first and asign in the right order to the end node
@@ -41,11 +41,11 @@ impl BHVNode {
                     ),
                 };
 
-                log::info!(
-                    "Two items, creating end node (BHV with two elements) for n: {} and n+1: {}",
-                    start,
-                    start + 1
-                );
+                // log::info!(
+                //    "Two items, creating end node (BHV with two elements) for n: {} and n+1: {}",
+                //    start,
+                //    start + 1
+                //);
                 return Box::new(node);
             } else {
                 let node: BHVNode = BHVNode {
@@ -57,14 +57,14 @@ impl BHVNode {
                     ),
                 };
 
-                log::info!("Two items, flipping & creating end node (BHV with two elements) for n: {} and n+1: {}", start+1, start);
+                // log::info!("Two items, flipping & creating end node (BHV with two elements) for n: {} and n+1: {}", start+1, start);
                 return Box::new(node);
             }
         } else {
             // we still have a few elements, so we need to create some more nodes and pass the elements
             // we randomize the axis that we sort on each time
             let n = SmallRng::seed_from_u64(223).gen_range(0..3);
-            log::info!("Sorting over {} axis", n);
+            // log::info!("Sorting over {} axis", n);
             objects[start..end].sort_by(|a, b| {
                 a.bounding_box()
                     .axis(n)
@@ -89,12 +89,12 @@ impl BHVNode {
                 bbox,
             };
 
-            log::info!(
-                "More than two items (s: {}, m: {}, e: {}), creating a new layer of BHV nodes.",
-                start,
-                mid,
-                end
-            );
+            // log::info!(
+            //    "More than two items (s: {}, m: {}, e: {}), creating a new layer of BHV nodes.",
+            //    start,
+            //    mid,
+            //    end
+            //);
             return Box::new(node);
         }
     }

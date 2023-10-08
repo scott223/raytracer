@@ -15,29 +15,53 @@
         "material": {
           "Lambertian": {
             "albedo": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0
-            }
-          }
-        }
-      }
-    },    
-        {
-          "JSONSphere": {
-            "center": {
-              "x": 190.0,
-              "y": 90.0,
-              "z": 190.0
-            },
-            "radius": 90.0,
-            "material": {
-              "Dielectric": {
-                "index_of_refraction": 1.5
-              }
+              "r": 0.73,
+              "g": 0.73,
+              "b": 0.73
             }
           }
         },
+        "transpose" : {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotate" : {
+          "theta_x": 0.0,
+          "theta_y": -0.25,
+          "theta_z": 0.0
+        }
+      }
+    },
+    {
+      "JSONBox": {
+        "a": {
+          "x": 130.0,
+          "y": 0.0,
+          "z": 65.0
+        },
+        "b": {
+          "x": 295.0,
+          "y": 165.0,
+          "z": 230.0
+        },
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.73,
+              "g": 0.73,
+              "b": 0.73
+            }
+          }
+        },
+        "scale" : {
+          "x": 1.0,
+          "y": 0.5,
+          "z": 1.0
+        }
+      }
+    },      
+
         {
       "JSONQuad": {
         "Q": {
@@ -114,9 +138,9 @@
         "material": {
           "DiffuseLight": {
             "albedo": {
-              "r": 7.0,
-              "g": 7.0,
-              "b": 7.0
+              "r": 10.0,
+              "g": 10.0,
+              "b": 10.0
             }
           }
         }
