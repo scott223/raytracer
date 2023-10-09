@@ -14,8 +14,8 @@
   "camera_fov_vertical": 40.0,
   "camera_defocus_angle": 0.0,
   "camera_focus_dist": 800.0,
-  "samples": 128,
-  "max_depth": 64,
+  "samples": 12,
+  "max_depth": 32,
   "sky_color": {
     "r": 0.3,
     "g": 0.5,

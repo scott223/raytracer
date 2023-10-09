@@ -19,17 +19,23 @@ png = "0.17.10"
 
 [dev-dependencies]
 test-log = "0.2.12"
+criterion = "0.5.1"
 
 [profile.release]
 lto = true          # Enable link-time optimization
 codegen-units = 1   # Reduce number of codegen units to increase optimizations
 panic = 'abort'     # Abort on panic
-strip = true        # Strip symbols from binary*
+strip = false        # Strip symbols from binary*
+debug = true
 
 [profile.dev]
 strip = false
 opt-level=0
 debug=true
+
+[[bench]]
+name = "default_benchmark"
+harness = false
 
 [profile.dev.package."*"]
 opt-level=3

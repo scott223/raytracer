@@ -14,12 +14,12 @@ pub mod config;
 mod aabb;
 mod bhv;
 mod camera;
-mod color;
-mod elements;
-mod interval;
-mod materials;
-mod ray;
-mod vec3;
+pub mod color;
+pub mod elements;
+pub mod interval;
+pub mod materials;
+pub mod ray;
+pub mod vec3;
 mod mat4;
 
 use bhv::BHVNode;
