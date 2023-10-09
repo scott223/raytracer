@@ -6,6 +6,7 @@ use indicatif::ProgressBar;
 
 use rayon::prelude::*;
 use std::error::Error;
+use std::f64::consts::PI;
 use std::time::Instant;
 
 // Raytracer imports
@@ -21,6 +22,7 @@ pub mod materials;
 pub mod ray;
 pub mod vec3;
 mod mat4;
+mod onb;
 
 use bhv::BHVNode;
 use camera::Camera;
@@ -143,7 +145,7 @@ fn ray_color(
             // we hit something
             // we start with scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
             match hit.material.scatter(ray, &hit, rng) {
-                Some((scattered_ray, albedo)) => {
+                Some((scattered_ray, pdf_option, albedo)) => {
                     // see if there is a ray returned
                     match scattered_ray {
                         Some(sr) => {
@@ -152,14 +154,21 @@ fn ray_color(
                             let target_color: Color =
                                 ray_color(&bhv_tree, &config, &sr, depth - 1, rng);
 
-                            let scattering_pdf = hit.material.scattering_pdf(ray, &hit, &sr);
-                            let pdf = scattering_pdf;
+                            // get the 
+                            let scattering_pdf: f64 = hit.material.scattering_pdf(ray, &hit, &sr);
+                            
+                            // if there was a pdf included in the scattered ray, apply that one, else use the scattering pdf as the basis (cancelling each other out)
+                            let pdf: f64 = if let Some(p) = pdf_option {
+                                p
+                            } else {
+                                scattering_pdf
+                            };
 
                             // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                             color_from_scatter = Color::new(
-                                albedo.r * target_color.r,
-                                albedo.g * target_color.g,
-                                albedo.b * target_color.b,
+                                (albedo.r * target_color.r * scattering_pdf) / pdf,
+                                (albedo.g * target_color.g * scattering_pdf) / pdf,
+                                (albedo.b * target_color.b * scattering_pdf) / pdf,
                             );
                         }
                         None => {

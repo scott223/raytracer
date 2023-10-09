@@ -3,7 +3,6 @@ use crate::mat4::{Mat4, Vec4};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
-use std::f32::EPSILON;
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
@@ -341,6 +340,16 @@ impl JSONBox {
 
         // create a cube with size 2x2x2 centered around the origin
         // make mutable as we are going to apply the transformations
+        
+        
+        //         3     7
+        //    2    x - x 
+        //      x - x6|
+        //      |0x-| x 4
+        //      x - x
+        //    1      5
+        //
+
         let mut vertices: [Vec3; 8] = [
             Vec3::new(1., -1., 1.),   //0
             Vec3::new(1., -1., -1.),  //1
@@ -361,7 +370,11 @@ impl JSONBox {
             [0, 2, 3], // left face
             [0, 1, 2],
             [2, 3, 7], // top face
-            [2, 7, 6]
+            [2, 7, 6],
+            [0, 7, 4], // back face
+            [0, 3, 7],
+            [4, 5, 1], // bottom face
+            [1, 0, 4]
             ];
 
         // scale with the size of the cube/rectangle according to the json min max points

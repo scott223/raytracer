@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use std::ops::{Add, Neg, Sub, Mul, Div};
 use std::fmt;
 
@@ -75,6 +76,19 @@ impl Vec3 {
         } else {
             return -rv;
         }
+    }
+
+    //creates a new random cosine pdf weigthed vector
+    pub fn random_cosine_direction(rng: &mut impl Rng) -> Self {
+        let r1: f64 = rng.gen_range(0.0..1.0);
+        let r2: f64 = rng.gen_range(0.0..1.0);
+    
+        let phi: f64 = 2. * PI *r1;
+        let x: f64 = phi.cos() * r2.sqrt();
+        let y: f64 = phi.sin() * r2.sqrt();
+        let z: f64 = (1.-r2).sqrt();
+    
+        return Vec3::new(x, y, z)
     }
 
     // checks if the vector is almost zero

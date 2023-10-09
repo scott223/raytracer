@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::color::Color;
+use crate::{color::Color, onb::Onb};
 use crate::elements::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -18,7 +18,7 @@ pub enum Material {
 
 // trait for a material that scatters
 pub trait Scatterable {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)>;
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Option<f64>, Color)>;
     fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
@@ -29,7 +29,7 @@ pub trait Emmits {
 // link the trait implementation to the materials
 // we now assume every material scatters, so each material needs a scatter function
 impl Scatterable for Material {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Option<f64>, Color)> {
         match self {
             Material::Lambertian(l) => l.scatter(ray, hit_record, rng),
             Material::Metal(m) => m.scatter(ray, hit_record, rng),
@@ -96,29 +96,31 @@ impl Lambertian {
 
 impl Scatterable for Lambertian {
     // create a scattered ray, randomized but with a lambartian distribution around the normal
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Option<f64>, Color)> {
         //lambertian distribution, assume the normal is normalized
-        // reflect from both sides
-        let mut new_direction: Vec3 = if hit_record.front_face {
-            hit_record.normal 
-        } else {
-            -hit_record.normal  
-        } + Vec3::new_random_unit_vector(rng);
+        //let mut new_direction = hit_record.normal + Vec3::new_random_unit_vector(rng);
 
         // if the direction is almost zero, scatter to the normal
-        if new_direction.near_zero() {
-            new_direction = hit_record.normal;
-        }
+        //if new_direction.near_zero() {
+        //    new_direction = hit_record.normal;
+       // }
+
+        //let scatter_drection = Vec3::new_random_on_hemisphere(&hit_record.normal, rng);
+
+        let uvw: Onb = Onb::build_from_w(hit_record.normal);
+        let scatter_direction: Vec3 = uvw.local_vec(Vec3::random_cosine_direction(rng));
 
         // create the new ray
-        let scattered = Ray::new(hit_record.point, new_direction);
+        let scattered = Ray::new(hit_record.point, scatter_direction);
+        let pdf: f64 = uvw.w().dot(&scattered.direction) / PI;
 
-        Some((Some(scattered), self.albedo))
+        Some((Some(scattered), Some(pdf), self.albedo))
     }
 
-    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
-        let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
-        if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
+    fn scattering_pdf(&self, _ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
+        //let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
+        //if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
+        return 1. / (2. * PI);
     }
 }
 
@@ -142,7 +144,7 @@ fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
 
 impl Scatterable for Metal {
     // create a reflected ray
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Option<f64>, Color)> {
         // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
         let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal)
             + Vec3::new_random_unit_vector(rng) * self.fuzz;
@@ -150,10 +152,10 @@ impl Scatterable for Metal {
         if hit_record.normal.dot(&new_direction) > 0.0 {
             // the reflected ray, including fuzz unit sphere, is outside the material, so return a reflected ray
             let reflected = Ray::new(hit_record.point, new_direction);
-            Some((Some(reflected), self.albedo))
+            Some((Some(reflected), Some(1.0), self.albedo))
         } else {
             // return no ray, as the ray is absorbed by the material (due to fuzz factor)
-            Some((None, self.albedo))
+            Some((None, None, self.albedo))
         }
     }
 
@@ -198,7 +200,7 @@ impl Dielectric {
 
 // source: Ray tracing in one Weekend
 impl Scatterable for Dielectric {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Color)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<(Option<Ray>, Option<f64>, Color)> {
         //let mut rng = rand::thread_rng();
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
         let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
@@ -213,11 +215,11 @@ impl Scatterable for Dielectric {
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
             let direction: Vec3 = reflect(&unit_direction, &hit_record.normal);
             let reflected_ray: Ray = Ray::new(hit_record.point, direction);
-            Some((Some(reflected_ray), albedo))
+            Some((Some(reflected_ray), Some(1.), albedo))
         } else {
             let direction: Vec3 = refract(&unit_direction, &hit_record.normal, refraction_ratio);
             let refracted_ray: Ray = Ray::new(hit_record.point, direction);
-            Some((Some(refracted_ray), albedo))
+            Some((Some(refracted_ray), Some(1.0), albedo))
         }
     }
 

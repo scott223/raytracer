@@ -122,6 +122,19 @@ impl Div<u8> for Color {
     }
 }
 
+// divide by a u8
+impl Div<f64> for Color {
+    type Output = Color;
+
+    fn div(self, q: f64) -> Color {
+        Color {
+            r: self.r / q as f64,
+            g: self.g / q as f64,
+            b: self.b / q as f64,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::color::Color;

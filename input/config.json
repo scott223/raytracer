@@ -15,7 +15,7 @@
   "camera_defocus_angle": 0.0,
   "camera_focus_dist": 800.0,
   "samples": 64,
-  "max_depth": 32,
+  "max_depth": 12,
   "sky_color": {
     "r": 0.3,
     "g": 0.5,
