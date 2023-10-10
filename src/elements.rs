@@ -369,8 +369,8 @@ impl JSONBox {
             [5, 4, 7],
             [0, 2, 3], // left face
             [0, 1, 2],
-            [2, 3, 7], // top face
-            [2, 7, 6],
+            [2, 7, 3], // top face
+            [2, 6, 7],
             [0, 7, 4], // back face
             [0, 3, 7],
             [4, 5, 1], // bottom face
