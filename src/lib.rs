@@ -39,6 +39,7 @@ use crate::elements::{Quad, Sphere};
 
 use crate::materials::{Lambertian, Material};
 use crate::vec3::Vec3;
+use crate::pdf::{PDFTrait, PDF, CosinePDF};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -143,67 +144,43 @@ fn ray_color(
         Some(hit) => {
             // we hit something
 
-            //now its time for emission
-            let mut color_from_emmission = Color::new(0.0, 0.0, 0.0);
-
+            // we hit a light, so we return the color from emmission and end here
             if let Some(c) = hit.material.emitted(ray, &hit) {
-                color_from_emmission = c;
+
+                return c;
             }
 
-            //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
-            let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
+            // we see if we get a scatter from thematerial
+            if let Some((Some(scattered), Some(pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
 
-                            let on_light = Vec3::new(
-                                rng.gen_range(213.0..343.0),
-                                554.0,
-                                rng.gen_range(227.0..332.0),
-                            );
+                //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
+                let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
 
-                            let mut to_light = on_light - hit.point;
-                            let distance_squared = to_light.length_squared();
-                            to_light = to_light.normalized();
+                let surface_pdf = PDF::CosinePDF(CosinePDF::new(hit.normal));
 
-                            if to_light.dot(&hit.normal) < 0. {
-                                //
-                            } else {
-                                let light_area: f64 = (343. - 213.) * (332. - 227.);
-                                let light_cosine = to_light.y().abs();
+                let scattered = Ray::new(hit.point, surface_pdf.generate(rng));
+                let pdf_val = surface_pdf.value(scattered.direction);
 
-                                if light_cosine < 0.00001 {
-                                    //
-                                } else {
+                // there is a scattered ray, so lets get the color of that ray
+                // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
+                let target_color: Color =
+                    ray_color(&bhv_tree, &config, &scattered, depth - 1, rng);
 
-                                    let pdf: f64 = distance_squared / (light_cosine * light_area);
-                                    let scattered = Ray::new(hit.point, to_light);
+                // get the
+                let scattering_pdf: f64 =
+                    hit.material.scattering_pdf(ray, &hit, &scattered);
 
-                                    // there is a scattered ray, so lets get the color of that ray
-                                    // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
-                                    let target_color: Color =
-                                        ray_color(&bhv_tree, &config, &scattered, depth - 1, rng);
+                // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
+                color_from_scatter = (attenuation * target_color * scattering_pdf)/ pdf_val;
 
-                                    // get the
-                                    let scattering_pdf: f64 =
-                                        hit.material.scattering_pdf(ray, &hit, &scattered);
+                return color_from_scatter;
 
-                                    // if there was a pdf included in the scattered ray, apply that one, else use the scattering pdf as the basis (cancelling each other out)
-                                    //let pdf: f64 = if let Some(p) = pdf_option {
-                                    //    p
-                                    //} else {
-                                    //    scattering_pdf
-                                    //};
 
-                                    // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
-                                    color_from_scatter = Color::new(
-                                        (0.73 * target_color.r * scattering_pdf) / pdf,
-                                        (0.73 * target_color.g * scattering_pdf) / pdf,
-                                        (0.73 * target_color.b * scattering_pdf) / pdf,
-                                    );
+            }
 
-                                }
+            // no emmission, nor scatter. just return black
+            Color::new(0.0, 0.0, 0.0)
 
-                            }
-
-            color_from_scatter + color_from_emmission
         },
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient

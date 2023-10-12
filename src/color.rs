@@ -96,6 +96,19 @@ impl Sub for Color {
     }
 }
 
+// multiply with a color
+impl Mul for Color {
+    type Output = Color;
+
+    fn mul(self, q: Color) -> Color {
+        Color {
+            r: self.r * q.r,
+            g: self.g * q.g,
+            b: self.b * q.b,
+        }
+    }
+}
+
 // multiply with a f64
 impl Mul<f64> for Color {
     type Output = Color;

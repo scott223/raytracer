@@ -6,21 +6,39 @@ use crate::{vec3::Vec3, onb::Onb};
 
 // struct for Probability Density Functions 
 #[derive(Debug, Clone, Copy)]
-pub struct Pdf {
- //   pub value: Vec3,
+pub enum PDF {
+    SpherePDF(SpherePDF),
+    CosinePDF(CosinePDF),
 }
 
-pub trait PdfTrait {
+pub trait PDFTrait {
     fn generate(&self, rng: &mut impl Rng) -> Vec3;
     fn value(&self, direction: Vec3) -> f64;
 }
 
+impl PDFTrait for PDF {
+    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
+        match self {
+            PDF::SpherePDF(s) => s.generate(rng),
+            PDF::CosinePDF(c) => c.generate(rng),
+        }
+    }
+
+    fn value(&self, direction: Vec3) -> f64 {
+        match self {
+            PDF::SpherePDF(s) => s.value(direction),
+            PDF::CosinePDF(c) => c.value(direction),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct SpherePDF {
     pub value: f64,
 }
 
 // uniform density over a sphere
-impl PdfTrait for SpherePDF {
+impl PDFTrait for SpherePDF {
     fn value(&self, _direction: Vec3) -> f64 {
         1. / (4. * PI)
     }
@@ -30,6 +48,7 @@ impl PdfTrait for SpherePDF {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CosinePDF {
     pub uvw: Onb,
 }
@@ -43,7 +62,7 @@ impl CosinePDF {
 }
 
 // cosine density
-impl PdfTrait for CosinePDF {
+impl PDFTrait for CosinePDF {
     fn value(&self, direction: Vec3) -> f64 {
         let cosine_theta = direction.normalized().dot(&self.uvw.w());
         0.0_f64.max(cosine_theta / PI)
