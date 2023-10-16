@@ -4,6 +4,7 @@ use crate::aabb::Aabb;
 use crate::elements::*;
 use crate::interval::Interval;
 use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 use rand::{Rng, SeedableRng};
 use rand::rngs::SmallRng;
@@ -173,6 +174,16 @@ impl Hittable for BHVNode {
 
     fn bounding_box(&self) -> Aabb {
         self.bbox //return the pre-set bounding box
+    }
+
+    // need to implement these for the Hittable trait, but serve little function in the BHVNode
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
+        0.0
+    }
+    
+    // need to implement these for the Hittable trait, but serve little function in the BHVNode
+    fn random(&self, _origin: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
     }
 }
 

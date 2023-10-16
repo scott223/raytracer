@@ -4,6 +4,7 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
 use std::fmt::Debug;
+use rand::Rng;
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,8 @@ pub struct HitRecord {
 pub trait Hittable {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord>;
     fn bounding_box(&self) -> Aabb;
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64;
+    fn random(&self, origin: Vec3) -> Vec3; // todo: find a way to pass the random generator
 }
 
 // enum for all the different elements, simplified JSON representation
@@ -77,6 +80,22 @@ impl Hittable for Element {
             Element::Sphere(ref s) => s.bounding_box(),
             Element::Quad(ref q) => q.bounding_box(),
             Element::Triangle(ref t) => t.bounding_box(),
+        }
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        match *self {
+            Element::Sphere(ref s) => s.pdf_value(origin, direction),
+            Element::Quad(ref q) => q.pdf_value(origin, direction),
+            Element::Triangle(ref t) => t.pdf_value(origin, direction),
+        }
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        match *self {
+            Element::Sphere(ref s) => s.random(origin),
+            Element::Quad(ref q) => q.random(origin),          
+            Element::Triangle(ref t) => t.random(origin),
         }
     }
 }
@@ -187,6 +206,14 @@ impl Hittable for Triangle {
 
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
     }
 }
 
@@ -305,6 +332,14 @@ impl Hittable for Quad {
 
         //we now calculate the bbox on initialization, so we can just return the field
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
     }
 }
 
@@ -554,6 +589,14 @@ impl Hittable for Sphere {
     // return the axis aligned bounding box Aabb for a sphere
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
     }
 }
 

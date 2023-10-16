@@ -2,13 +2,14 @@ use std::f64::consts::PI;
 
 use rand::Rng;
 
-use crate::{vec3::Vec3, onb::Onb};
+use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
 
 // struct for Probability Density Functions 
 #[derive(Debug, Clone, Copy)]
 pub enum PDF {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
+    HittablePDF(HittablePDF),
 }
 
 pub trait PDFTrait {
@@ -21,6 +22,7 @@ impl PDFTrait for PDF {
         match self {
             PDF::SpherePDF(s) => s.generate(rng),
             PDF::CosinePDF(c) => c.generate(rng),
+            PDF::HittablePDF(h) => h.generate(rng),
         }
     }
 
@@ -28,9 +30,29 @@ impl PDFTrait for PDF {
         match self {
             PDF::SpherePDF(s) => s.value(direction),
             PDF::CosinePDF(c) => c.value(direction),
+            PDF::HittablePDF(h) => h.value(direction),
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct HittablePDF {
+    pub value: f64,
+    pub origin: Vec3,
+    pub object: Element,
+}
+
+// PDF for a hittable object
+impl PDFTrait for HittablePDF {
+    fn value(&self, direction: Vec3) -> f64 {
+        self.object.pdf_value(self.origin, direction)
+    }
+    
+    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
+        self.object.random(self.origin)
+    }
+}
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpherePDF {
