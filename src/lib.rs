@@ -113,6 +113,10 @@ pub fn render_line(
             color += ray_color(&bhv_tree, &config, &ray, config.max_depth, &mut rng);
         }
 
+        if color.has_nan() {
+            log::error!("color has NaN");
+        }
+
         // set pixel color, but first divide by the number of samples to get the average and return
         band[x] = color
             .divide_by_samples(config.samples)

@@ -4,8 +4,9 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
 use std::fmt::Debug;
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
+use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
 
 // hitrecord gets returned on a hit, containting the point on the ray, the point in the global coordinate system, the normal and the material for the hit
@@ -248,6 +249,7 @@ pub struct Quad {
     pub normal: Vec3,
     pub D: f64,
     pub w: Vec3,
+    pub area: f64,
     pub bbox: Aabb,
 }
 
@@ -262,6 +264,7 @@ impl Quad {
         let normal: Vec3 = n.normalized();
         let D: f64 = normal.dot(&Q);
         let w: Vec3 = n / n.dot(&n);
+        let area: f64 = normal.length();
 
         Quad {
             Q,
@@ -271,6 +274,7 @@ impl Quad {
             normal,
             D,
             w,
+            area,
             material,
             bbox: Aabb::new_from_points(Q, Q + u + v).pad(),
         }
@@ -334,12 +338,36 @@ impl Hittable for Quad {
         self.bbox
     }
 
+
+    // returns the value for the probability distribution function for a given origing and direction
     fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
-        0.0
+        
+        // check if this ray actually hits this quad
+        let r = Ray::new(origin, direction);
+        if let Some(hit) = self.hit(&r, &mut Interval::new(0.001, f64::INFINITY)) {
+            
+            let distance_squared = hit.t * hit.t * direction.length_squared();
+            let cosine = direction.dot(&hit.normal).abs() / direction.length();
+            return distance_squared / (cosine * self.area);
+
+        } else {
+            // no hit, so we just retun 0
+            return 0.0;
+        }
     }
 
+    // returns the direction from the origin to a random point on this quad
+    // TODO: deal with transformations
+
     fn random(&self, origin: Vec3) -> Vec3 {
-        Vec3::new(1.0, 0.0, 0.0)
+        
+        let mut rng = SmallRng::seed_from_u64(y as u64);
+
+        let r0 = rng.gen_range(0.0..1.0);
+        let r1 = rng.gen_range(0.0..1.0);
+
+        let p: Vec3 = self.Q + (self.u * r0) + (self.v * r1);
+        p - origin
     }
 }
 

@@ -57,6 +57,10 @@ impl Color {
             b: (c.b * 255.0) as u8,
         }
     }
+
+    pub fn has_nan(&self) -> bool {
+        self.r.is_nan() || self.g.is_nan() || self.b.is_nan()
+    }
 }
 
 // + operator
