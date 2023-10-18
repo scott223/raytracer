@@ -1,28 +1,29 @@
 use std::f64::consts::PI;
 
-use rand::Rng;
+use rand::{Rng, rngs::SmallRng, SeedableRng};
 
 use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
 
 // struct for Probability Density Functions 
-#[derive(Debug, Clone, Copy)]
 pub enum PDF {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
     HittablePDF(HittablePDF),
+    MixedPDF(MixedPDF),
 }
 
 pub trait PDFTrait {
-    fn generate(&self, rng: &mut impl Rng) -> Vec3;
+    fn generate(&self) -> Vec3;
     fn value(&self, direction: Vec3) -> f64;
 }
 
 impl PDFTrait for PDF {
-    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
+    fn generate(&self) -> Vec3 {
         match self {
-            PDF::SpherePDF(s) => s.generate(rng),
-            PDF::CosinePDF(c) => c.generate(rng),
-            PDF::HittablePDF(h) => h.generate(rng),
+            PDF::SpherePDF(s) => s.generate(),
+            PDF::CosinePDF(c) => c.generate(),
+            PDF::HittablePDF(h) => h.generate(),
+            PDF::MixedPDF(m) => m.generate(),
         }
     }
 
@@ -31,7 +32,43 @@ impl PDFTrait for PDF {
             PDF::SpherePDF(s) => s.value(direction),
             PDF::CosinePDF(c) => c.value(direction),
             PDF::HittablePDF(h) => h.value(direction),
+            PDF::MixedPDF(m) => m.value(direction),
         }
+    }
+}
+
+pub struct MixedPDF {
+    pub origin: Vec3,
+    pub p1: Box<dyn PDFTrait>,
+    pub p2: Box<dyn PDFTrait>,
+}
+
+// PDF for a hittable object
+impl PDFTrait for MixedPDF {
+    //combine the values from the two PDF's
+    fn value(&self, direction: Vec3) -> f64 {
+        0.5 * self.p1.value(direction) + 0.5 * self.p2.value(direction)
+    }
+    
+    //pick a random ray from one of the PDFs
+    fn generate(&self) -> Vec3 {
+        let mut rng = SmallRng::from_entropy();
+        let r = rng.gen_range(0.0..1.0);
+        if r < 0.5 {
+            self.p1.generate()
+        } else {
+            self.p2.generate()
+        }
+    }
+}
+
+impl MixedPDF {
+    pub fn new(origin: Vec3, p1: impl PDFTrait + 'static, p2: impl PDFTrait + 'static) -> Self {
+        MixedPDF { 
+            origin,
+            p1: Box::new(p1),
+            p2: Box::new(p2),
+         }
     }
 }
 
@@ -48,8 +85,17 @@ impl PDFTrait for HittablePDF {
         self.object.pdf_value(self.origin, direction)
     }
     
-    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
+    fn generate(&self) -> Vec3 {
         self.object.random(self.origin)
+    }
+}
+
+impl HittablePDF {
+    pub fn new(origin: Vec3, object: Element) -> Self {
+        HittablePDF { value: 0., 
+            origin, 
+            object,
+         }
     }
 }
 
@@ -65,8 +111,9 @@ impl PDFTrait for SpherePDF {
         1. / (4. * PI)
     }
     
-    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
-        Vec3::new_random_unit_vector(rng)
+    fn generate(&self) -> Vec3 {
+        let mut rng = SmallRng::from_entropy();
+        Vec3::new_random_unit_vector(&mut rng)
     }
 }
 
@@ -90,7 +137,8 @@ impl PDFTrait for CosinePDF {
         0.0_f64.max(cosine_theta / PI)
     }
 
-    fn generate(&self, rng: &mut impl Rng) -> Vec3 {
-        self.uvw.local_vec(Vec3::random_cosine_direction(rng))
+    fn generate(&self) -> Vec3 {
+        let mut rng = SmallRng::from_entropy();
+        self.uvw.local_vec(Vec3::random_cosine_direction(&mut rng))
     }
 }

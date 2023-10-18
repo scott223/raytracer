@@ -264,7 +264,7 @@ impl Quad {
         let normal: Vec3 = n.normalized();
         let D: f64 = normal.dot(&Q);
         let w: Vec3 = n / n.dot(&n);
-        let area: f64 = normal.length();
+        let area: f64 = n.length();
 
         Quad {
             Q,
@@ -361,7 +361,7 @@ impl Hittable for Quad {
 
     fn random(&self, origin: Vec3) -> Vec3 {
         
-        let mut rng = SmallRng::seed_from_u64(y as u64);
+        let mut rng = SmallRng::from_entropy();
 
         let r0 = rng.gen_range(0.0..1.0);
         let r1 = rng.gen_range(0.0..1.0);
@@ -373,7 +373,7 @@ impl Hittable for Quad {
 
 // Box element
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct JSONBox {
     pub a: Vec3,
     pub b: Vec3,

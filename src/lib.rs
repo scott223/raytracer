@@ -1,3 +1,4 @@
+use pdf::{HittablePDF, MixedPDF};
 // Rust imports
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -7,6 +8,7 @@ use indicatif::ProgressBar;
 use rayon::prelude::*;
 use std::error::Error;
 use std::f64::consts::PI;
+use std::ops::Index;
 use std::time::Instant;
 
 // Raytracer imports
@@ -61,6 +63,24 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
         }
     }
 
+    let mut lights: Vec<Element> = Vec::new();
+
+    for json_element in json_scene.lights {
+        match json_element {
+            JSONElement::JSONQuad(q) => q.add_as_element(&mut lights),
+            JSONElement::JSONSphere(s) => s.add_as_element(&mut lights),
+            JSONElement::JSONTriangle(t) => t.add_as_element(&mut lights),
+            JSONElement::JSONBox(b) => b.add_as_element(&mut lights),
+        }
+
+        match json_element {
+            JSONElement::JSONQuad(q) => q.add_as_element(&mut objects),
+            JSONElement::JSONSphere(s) => s.add_as_element(&mut objects),
+            JSONElement::JSONTriangle(t) => t.add_as_element(&mut objects),
+            JSONElement::JSONBox(b) => b.add_as_element(&mut objects),
+        }
+    }
+
     // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
     log::info!("Creating the BHV node tree");
     let end = objects.len();
@@ -81,7 +101,7 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
     // use Rayon parallel iterator to iterate over the bands and render per line
     let start: Instant = Instant::now();
     bands.into_par_iter().for_each(|(i, band)| {
-        render_line(i as i64, band, &camera, &bhv_tree, &config);
+        render_line(i as i64, band, &camera, &bhv_tree, &lights, &config);
         pb.inc(1);
     });
 
@@ -98,6 +118,7 @@ pub fn render_line(
     band: &mut [Color],
     camera: &Camera,
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
+    lights: &Vec<Element>,
     config: &Config,
 ) {
     let mut rng = SmallRng::seed_from_u64(y as u64);
@@ -110,7 +131,7 @@ pub fn render_line(
         for _i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
             let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-            color += ray_color(&bhv_tree, &config, &ray, config.max_depth, &mut rng);
+            color += ray_color(&bhv_tree, &lights, &config, &ray, config.max_depth, &mut rng);
         }
 
         if color.has_nan() {
@@ -130,6 +151,7 @@ pub fn render_line(
 // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
 fn ray_color(
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
+    lights: &Vec<Element>,
     config: &Config,
     ray: &Ray,
     depth: usize,
@@ -150,7 +172,6 @@ fn ray_color(
 
             // we hit a light, so we return the color from emmission and end here
             if let Some(c) = hit.material.emitted(ray, &hit) {
-
                 return c;
             }
 
@@ -160,15 +181,20 @@ fn ray_color(
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
                 let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
 
-                let surface_pdf = PDF::CosinePDF(CosinePDF::new(hit.normal));
+                let light_pdf: PDF = PDF::HittablePDF(HittablePDF::new(hit.point, lights[0]));
+                let cosine_pdf: PDF = PDF::CosinePDF(CosinePDF::new(hit.normal));
+                let mixed_pdf: PDF = PDF::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
 
-                let scattered = Ray::new(hit.point, surface_pdf.generate(rng));
-                let pdf_val = surface_pdf.value(scattered.direction);
+
+                let scattered = Ray::new(hit.point, mixed_pdf.generate());
+                //print!("scattered: {:?}", scattered);
+                let pdf_val = mixed_pdf.value(scattered.direction);
+                //println!("{}", pdf_val);
 
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                 let target_color: Color =
-                    ray_color(&bhv_tree, &config, &scattered, depth - 1, rng);
+                    ray_color(&bhv_tree, &lights, &config, &scattered, depth - 1, rng);
 
                 // get the
                 let scattering_pdf: f64 =

@@ -52,6 +52,7 @@ impl Default for Config {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JSONScene {
     pub elements: Vec<JSONElement>,
+    pub lights: Vec<JSONElement>,
 }
 
 #[derive(Debug)]
