@@ -127,11 +127,17 @@ pub fn render_line(
         // start with black color
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
 
+        // sets a pixel to follow and print detailed logs
+        let follow_coords: [usize; 2] = [75, 200];
+
         // loop through all the anti aliasing samples
-        for _i in 0..config.samples {
+        for i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
             let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-            color += ray_color(&bhv_tree, &lights, &config, &ray, config.max_depth, &mut rng);
+            let follow = if x == follow_coords[0] && y as usize == follow_coords[1] { true } else { false };
+            if follow  { log::info!("sample: {}", i); }
+
+            color += ray_color(&bhv_tree, &lights, &config, &ray, config.max_depth, &mut rng, follow);
         }
 
         if color.has_nan() {
@@ -142,7 +148,7 @@ pub fn render_line(
         band[x] = color
             .divide_by_samples(config.samples)
             .clamp()
-            .linear_to_gamma(2.3);
+            .linear_to_gamma(2.2);
     }
 } // fn render_line
 
@@ -156,6 +162,7 @@ fn ray_color(
     ray: &Ray,
     depth: usize,
     rng: &mut impl Rng,
+    follow: bool,
 ) -> Color {
     if depth == 0 {
         // we ran out of depth iterations, so we return black
@@ -170,21 +177,30 @@ fn ray_color(
         Some(hit) => {
             // we hit something
 
-            // we hit a light, so we return the color from emmission and end here
-            if let Some(c) = hit.material.emitted(ray, &hit) {
-                return c;
+            if follow {
+                log::info!("follow pixel: we hit something");
             }
 
-            // we see if we get a scatter from thematerial
-            if let Some((Some(scattered), Some(pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
+            // we hit a light, so we return the color from emmission and end here
+            if let Some(c) = hit.material.emitted(ray, &hit) {
+                
+                if follow {
+                    log::info!("emmitting, returning color c {:?}", c);
+                }
+                
+                return c;
+
+            }
+
+            // we see if we get a scatter from the material
+            if let Some((Some(sscattered), Some(pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
 
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
-                let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
+                // let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
 
                 let light_pdf: PDF = PDF::HittablePDF(HittablePDF::new(hit.point, lights[0]));
                 let cosine_pdf: PDF = PDF::CosinePDF(CosinePDF::new(hit.normal));
                 let mixed_pdf: PDF = PDF::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
-
 
                 let scattered = Ray::new(hit.point, mixed_pdf.generate());
                 //print!("scattered: {:?}", scattered);
@@ -194,14 +210,20 @@ fn ray_color(
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                 let target_color: Color =
-                    ray_color(&bhv_tree, &lights, &config, &scattered, depth - 1, rng);
+                    ray_color(&bhv_tree, &lights, &config, &scattered, depth - 1, rng, follow);
 
-                // get the
+                // get the pdf for that spot on that material
                 let scattering_pdf: f64 =
                     hit.material.scattering_pdf(ray, &hit, &scattered);
 
                 // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
-                color_from_scatter = (attenuation * target_color * scattering_pdf)/ pdf_val;
+                let color_from_scatter = (attenuation * target_color * scattering_pdf)/ pdf_val;
+
+                if follow {
+                    log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, attenuation, scattering_pdf, pdf_val);
+                 }
+
+                 if color_from_scatter.has_nan() { log::error!("color has Nan!"); }
 
                 return color_from_scatter;
 

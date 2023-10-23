@@ -118,9 +118,8 @@ impl Scatterable for Lambertian {
     }
 
     fn scattering_pdf(&self, _ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
-        //let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
-        //if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
-        return 1. / (2. * PI);
+        let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
+        if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
     }
 }
 

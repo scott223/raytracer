@@ -133,7 +133,6 @@ impl JSONTriangle {
 impl Triangle {
     pub fn new_from_json_object(json_triangle: JSONTriangle) -> Self {
 
-        
         Triangle::new(
             json_triangle.v0,
             json_triangle.v1,
@@ -391,6 +390,7 @@ impl JSONBox {
             self.a.y().min(self.b.y()),
             self.a.z().min(self.b.z()),
         );
+        
         let max: Vec3 = Vec3::new(
             self.a.x().max(self.b.x()),
             self.a.y().max(self.b.y()),
@@ -439,6 +439,9 @@ impl JSONBox {
             [4, 5, 1], // bottom face
             [1, 0, 4]
             ];
+
+
+        // TODO: create one big transformation matrix and apply once
 
         // scale with the size of the cube/rectangle according to the json min max points
         let tm_scale = Mat4::scale(dx.x() / 2., dy.y() / 2., dz.z() / 2.);
@@ -492,6 +495,7 @@ impl JSONBox {
 
         // add the triangles as objects
         for t in triangles {
+            //print!("v0, v1, v2: {:.2}, {:.2}, {:.2}", vertices[t[0]], vertices[t[1]], vertices[t[2]]);
             objects.push(Element::Triangle(Triangle::new(
                 vertices[t[0]],
                 vertices[t[1]],
