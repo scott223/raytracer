@@ -2,8 +2,9 @@
 Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.
 
 ## Ray tracing features
-- pixel by pixel raytracing with stochastic anti aliasing
-- various primitives (triangle, quad, spheres)
+- monte carlo based, pixel by pixel raytracing with stochastic anti aliasing
+- weigthed importance sampling
+- various primitives (triangle, quad, sphere)
 - various materials (Lambertian, Metal, Glass, ...)
 - Bounded Hierarchy Volumes (BHV) tree to accelerate intersection tracing
 - parallel multi-threaded rendering
@@ -19,5 +20,6 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 
 ## Credits / references
 - Raytracing in One Weekend (https://raytracing.github.io/books/RayTracingInOneWeekend.html)
+- PBR book (https://www.pbr-book.org)
 - Raytracer in Rust (https://github.com/dps/rust-raytracer)
 - Raytracer in Rust (https://bheisler.github.io/post/writing-raytracer-in-rust-part-1/)

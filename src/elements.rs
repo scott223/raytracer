@@ -24,7 +24,7 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord>;
     fn bounding_box(&self) -> Aabb;
     fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64;
-    fn random(&self, origin: Vec3) -> Vec3; // todo: find a way to pass the random generator
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3; 
 }
 
 // enum for all the different elements, simplified JSON representation
@@ -92,11 +92,11 @@ impl Hittable for Element {
         }
     }
 
-    fn random(&self, origin: Vec3) -> Vec3 {
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         match *self {
-            Element::Sphere(ref s) => s.random(origin),
-            Element::Quad(ref q) => q.random(origin),          
-            Element::Triangle(ref t) => t.random(origin),
+            Element::Sphere(ref s) => s.random(origin, rng),
+            Element::Quad(ref q) => q.random(origin, rng),          
+            Element::Triangle(ref t) => t.random(origin, rng),
         }
     }
 }
@@ -212,7 +212,7 @@ impl Hittable for Triangle {
         0.0
     }
 
-    fn random(&self, origin: Vec3) -> Vec3 {
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }
@@ -358,9 +358,7 @@ impl Hittable for Quad {
     // returns the direction from the origin to a random point on this quad
     // TODO: deal with transformations
 
-    fn random(&self, origin: Vec3) -> Vec3 {
-        
-        let mut rng = SmallRng::from_entropy();
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
 
         let r0 = rng.gen_range(0.0..1.0);
         let r1 = rng.gen_range(0.0..1.0);
@@ -627,7 +625,7 @@ impl Hittable for Sphere {
         0.0
     }
 
-    fn random(&self, origin: Vec3) -> Vec3 {
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }

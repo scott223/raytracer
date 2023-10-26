@@ -1,14 +1,13 @@
 use pdf::{HittablePDF, MixedPDF};
 // Rust imports
 use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
+use rand::{SeedableRng};
 
 use indicatif::ProgressBar;
 
 use rayon::prelude::*;
 use std::error::Error;
-use std::f64::consts::PI;
-use std::ops::Index;
+
 use std::time::Instant;
 
 // Raytracer imports
@@ -30,17 +29,14 @@ mod pdf;
 use bhv::BHVNode;
 use camera::Camera;
 use color::Color;
-use config::{Config, JSONScene, Scene};
+use config::{Config, JSONScene};
 use elements::{Element, Hittable};
 use interval::Interval;
 use materials::{Emmits, Scatterable};
 use ray::Ray;
 
-use crate::elements::{JSONElement, Triangle};
-use crate::elements::{Quad, Sphere};
+use crate::elements::JSONElement;
 
-use crate::materials::{Lambertian, Material};
-use crate::vec3::Vec3;
 use crate::pdf::{PDFTrait, PDF, CosinePDF};
 
 // fn render
@@ -121,7 +117,7 @@ pub fn render_line(
     lights: &Vec<Element>,
     config: &Config,
 ) {
-    let mut rng = SmallRng::seed_from_u64(y as u64);
+    let mut rng: SmallRng = SmallRng::seed_from_u64(y as u64);
 
     for x in 0..config.img_width as usize {
         // start with black color
@@ -161,7 +157,7 @@ fn ray_color(
     config: &Config,
     ray: &Ray,
     depth: usize,
-    rng: &mut impl Rng,
+    rng: &mut SmallRng,
     follow: bool,
 ) -> Color {
     if depth == 0 {
@@ -196,16 +192,17 @@ fn ray_color(
             if let Some((Some(sscattered), Some(pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
 
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
-                // let mut color_from_scatter = Color::new(0.0, 0.0, 0.0);
 
                 let light_pdf: PDF = PDF::HittablePDF(HittablePDF::new(hit.point, lights[0]));
                 let cosine_pdf: PDF = PDF::CosinePDF(CosinePDF::new(hit.normal));
                 let mixed_pdf: PDF = PDF::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
 
-                let scattered = Ray::new(hit.point, mixed_pdf.generate());
-                //print!("scattered: {:?}", scattered);
+                // generate the direction for the new scattered ray based on the PDF
+                let scattered = Ray::new(hit.point, mixed_pdf.generate(rng));
+
+                // get the pdf value
                 let pdf_val = mixed_pdf.value(scattered.direction);
-                //println!("{}", pdf_val);
+
 
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
@@ -217,8 +214,10 @@ fn ray_color(
                     hit.material.scattering_pdf(ray, &hit, &scattered);
 
                 // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
+                // also apply the sample importance weighting
                 let color_from_scatter = (attenuation * target_color * scattering_pdf)/ pdf_val;
 
+                // if we track this pixel, print out extra info
                 if follow {
                     log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, attenuation, scattering_pdf, pdf_val);
                  }

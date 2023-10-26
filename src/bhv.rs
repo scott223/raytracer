@@ -182,7 +182,7 @@ impl Hittable for BHVNode {
     }
     
     // need to implement these for the Hittable trait, but serve little function in the BHVNode
-    fn random(&self, _origin: Vec3) -> Vec3 {
+    fn random(&self, _origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }

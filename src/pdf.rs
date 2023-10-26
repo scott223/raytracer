@@ -13,17 +13,17 @@ pub enum PDF {
 }
 
 pub trait PDFTrait {
-    fn generate(&self) -> Vec3;
+    fn generate(&self, rng: &mut SmallRng) -> Vec3;
     fn value(&self, direction: Vec3) -> f64;
 }
 
 impl PDFTrait for PDF {
-    fn generate(&self) -> Vec3 {
+    fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         match self {
-            PDF::SpherePDF(s) => s.generate(),
-            PDF::CosinePDF(c) => c.generate(),
-            PDF::HittablePDF(h) => h.generate(),
-            PDF::MixedPDF(m) => m.generate(),
+            PDF::SpherePDF(s) => s.generate(rng),
+            PDF::CosinePDF(c) => c.generate(rng),
+            PDF::HittablePDF(h) => h.generate(rng),
+            PDF::MixedPDF(m) => m.generate(rng),
         }
     }
 
@@ -51,13 +51,12 @@ impl PDFTrait for MixedPDF {
     }
     
     //pick a random ray from one of the PDFs
-    fn generate(&self) -> Vec3 {
-        let mut rng = SmallRng::from_entropy();
+    fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         let r = rng.gen_range(0.0..1.0);
         if r < 0.5 {
-            self.p1.generate()
+            self.p1.generate(rng)
         } else {
-            self.p2.generate()
+            self.p2.generate(rng)
         }
     }
 }
@@ -85,8 +84,8 @@ impl PDFTrait for HittablePDF {
         self.object.pdf_value(self.origin, direction)
     }
     
-    fn generate(&self) -> Vec3 {
-        self.object.random(self.origin)
+    fn generate(&self, rng: &mut SmallRng) -> Vec3 {
+        self.object.random(self.origin, rng)
     }
 }
 
@@ -111,9 +110,8 @@ impl PDFTrait for SpherePDF {
         1. / (4. * PI)
     }
     
-    fn generate(&self) -> Vec3 {
-        let mut rng = SmallRng::from_entropy();
-        Vec3::new_random_unit_vector(&mut rng)
+    fn generate(&self, rng: &mut SmallRng) -> Vec3 {
+        Vec3::new_random_unit_vector(rng)
     }
 }
 
@@ -137,8 +135,7 @@ impl PDFTrait for CosinePDF {
         0.0_f64.max(cosine_theta / PI)
     }
 
-    fn generate(&self) -> Vec3 {
-        let mut rng = SmallRng::from_entropy();
-        self.uvw.local_vec(Vec3::random_cosine_direction(&mut rng))
+    fn generate(&self, rng: &mut SmallRng) -> Vec3 {
+        self.uvw.local_vec(Vec3::random_cosine_direction(rng))
     }
 }
