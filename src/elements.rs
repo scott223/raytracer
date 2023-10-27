@@ -4,7 +4,7 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
 use std::fmt::Debug;
-use rand::{Rng, SeedableRng};
+use rand::{Rng};
 
 use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
@@ -194,13 +194,13 @@ impl Hittable for Triangle {
         let point: Vec3 = ray.at(t);
 
         // we have a hit, so we return a hit record
-        return Some(HitRecord {
+        Some(HitRecord {
             t,
             normal: self.normal,
             point,
             front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
-        });
+        })
 
     }
 
@@ -208,11 +208,11 @@ impl Hittable for Triangle {
         self.bbox
     }
 
-    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
         0.0
     }
 
-    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
+    fn random(&self, _origin: Vec3, _rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }
@@ -222,7 +222,7 @@ impl Hittable for Triangle {
 // simplified JSON version of the quad
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct JSONQuad {
-    pub Q: Vec3,
+    pub q: Vec3,
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
@@ -230,7 +230,7 @@ pub struct JSONQuad {
 
 impl JSONQuad {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
-        let object = Element::Quad(Quad::new(self.Q, self.u, self.v, self.material));
+        let object = Element::Quad(Quad::new(self.q, self.u, self.v, self.material));
         objects.push(object);
     }
 }
@@ -238,7 +238,7 @@ impl JSONQuad {
 // actual quad element
 #[derive(Debug, Clone, Copy)]
 pub struct Quad {
-    pub Q: Vec3,
+    pub q: Vec3,
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
@@ -246,7 +246,7 @@ pub struct Quad {
     //following fields are used for every hit calculation, so we pre-calculate in the constructor
     pub n: Vec3,
     pub normal: Vec3,
-    pub D: f64,
+    pub d: f64,
     pub w: Vec3,
     pub area: f64,
     pub bbox: Aabb,
@@ -254,28 +254,28 @@ pub struct Quad {
 
 impl Quad {
     pub fn new_from_json_object(json_quad: JSONQuad) -> Self {
-        Quad::new(json_quad.Q, json_quad.u, json_quad.v, json_quad.material)
+        Quad::new(json_quad.q, json_quad.u, json_quad.v, json_quad.material)
     }
 
     // Creating a new Quad with lower left point Q and vectors u and v
-    pub fn new(Q: Vec3, u: Vec3, v: Vec3, material: Material) -> Self {
+    pub fn new(q: Vec3, u: Vec3, v: Vec3, material: Material) -> Self {
         let n: Vec3 = u.cross(&v);
         let normal: Vec3 = n.normalized();
-        let D: f64 = normal.dot(&Q);
+        let d: f64 = normal.dot(&q);
         let w: Vec3 = n / n.dot(&n);
         let area: f64 = n.length();
 
         Quad {
-            Q,
+            q,
             u,
             v,
             n,
             normal,
-            D,
+            d,
             w,
             area,
             material,
-            bbox: Aabb::new_from_points(Q, Q + u + v).pad(),
+            bbox: Aabb::new_from_points(q, q + u + v).pad(),
         }
     }
 
@@ -300,13 +300,13 @@ impl Hittable for Quad {
         }
 
         // return false if the hit point paramater t is outside the ray interval
-        let t: f64 = (self.D - self.normal.dot(&ray.origin)) / denom;
+        let t: f64 = (self.d - self.normal.dot(&ray.origin)) / denom;
         if !ray_t.contains(t) {
             return None;
         }
 
         let intersection = ray.at(t);
-        let planar_hitpoint_vector: Vec3 = intersection - self.Q;
+        let planar_hitpoint_vector: Vec3 = intersection - self.q;
         let alpha: f64 = self.w.dot(&planar_hitpoint_vector.cross(&self.v));
         let beta: f64 = self.w.dot(&self.u.cross(&planar_hitpoint_vector));
 
@@ -321,13 +321,13 @@ impl Hittable for Quad {
         }
 
         // we have a hit, so we return a hit record
-        return Some(HitRecord {
+        Some(HitRecord {
             t,
             normal: self.normal,
             point: intersection,
             front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
-        });
+        })
     }
 
     fn bounding_box(&self) -> Aabb {
@@ -347,11 +347,12 @@ impl Hittable for Quad {
             
             let distance_squared = hit.t * hit.t * direction.length_squared();
             let cosine = direction.dot(&hit.normal).abs() / direction.length();
-            return distance_squared / (cosine * self.area);
+
+            distance_squared / (cosine * self.area)
 
         } else {
             // no hit, so we just retun 0
-            return 0.0;
+            0.0
         }
     }
 
@@ -363,7 +364,7 @@ impl Hittable for Quad {
         let r0 = rng.gen_range(0.0..1.0);
         let r1 = rng.gen_range(0.0..1.0);
 
-        let p: Vec3 = self.Q + (self.u * r0) + (self.v * r1);
+        let p: Vec3 = self.q + (self.u * r0) + (self.v * r1);
         p - origin
     }
 }
@@ -608,7 +609,7 @@ impl Hittable for Sphere {
                         -outward_normal
                     },
                     point: p,
-                    front_face: front_face,
+                    front_face,
                     material: self.material,
                 });
             }
@@ -621,11 +622,11 @@ impl Hittable for Sphere {
         self.bbox
     }
 
-    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
         0.0
     }
 
-    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
+    fn random(&self, _origin: Vec3, _rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }

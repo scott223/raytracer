@@ -70,7 +70,7 @@ impl Aabb {
 
     // checks if we have a hit with the aabb, in a given interval
     pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
-        for a in 0..3 as usize {
+        for a in 0..3_usize {
             let mut t0: f64 = (self.axis(a).interval_min - ray.origin.axis(a)) * ray.inv_dir.axis(a);
             let mut t1: f64 = (self.axis(a).interval_max - ray.origin.axis(a)) * ray.inv_dir.axis(a);
 

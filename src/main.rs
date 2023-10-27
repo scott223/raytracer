@@ -45,7 +45,7 @@ fn main() {
 
             let path = Path::new(r"renders/render.png");
             let file = File::create(path).unwrap();
-            let ref mut w = BufWriter::new(file);
+            let w = &mut BufWriter::new(file);
             
             let mut encoder = png::Encoder::new(w, config.img_width as u32, config.img_height as u32); // Width x heigth
             encoder.set_color(png::ColorType::Rgb);

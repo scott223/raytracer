@@ -87,7 +87,7 @@ impl Scene {
     pub fn trace(&self, ray: &Ray) -> Option<HitRecord> {
         self.elements
             .iter()
-            .filter_map(|e| e.hit(&ray, &mut Interval::new(0.001, f64::MAX)))
+            .filter_map(|e| e.hit(ray, &mut Interval::new(0.001, f64::MAX)))
             .min_by(|i1, i2 | i1.t.partial_cmp(&i2.t).unwrap())
     }
 }

@@ -1,5 +1,5 @@
 
-use std::ops::{Add, Neg, Sub, Mul, Div, AddAssign, MulAssign};
+use std::ops::{Add, Mul, Div, AddAssign, MulAssign};
 use serde::{Serialize, Deserialize};
 
 use crate::vec3::Vec3;
@@ -29,11 +29,11 @@ impl Vec4 {
             x: v.x(),
             y: v.y(),
             z: v.z(),
-            w: w,
+            w,
         }
     }
 
-    pub fn to_vec3(&self) -> Vec3 {
+    pub fn to_vec3(self) -> Vec3 {
         Vec3::new(
             self.x,
             self.y, 
@@ -53,7 +53,7 @@ impl Mat4 {
 
     /// Creates a new identity 4x4 matrix
     #[inline(always)]
-    pub fn identity() -> Self {
+    pub fn _identity() -> Self {
         Mat4 {
             data: [[1., 0., 0., 0.],
                   [0., 1., 0., 0.],
@@ -122,6 +122,7 @@ impl Mat4 {
     /// Computes the determinant of a 4x4 matrix
     /// Source: https://docs.piston.rs/graphics/src/vecmath/lib.rs.html
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn determinant(&self) -> f64 {
 
         let mat = self.data;
@@ -163,6 +164,7 @@ impl Mat4 {
     /// Computes the inverse determinant of a 4x4 matrix
     /// Source: https://docs.piston.rs/graphics/src/vecmath/lib.rs.html
     #[inline(always)]
+    #[allow(dead_code)]
     fn inv_determinant(&self) -> f64 {
         1.0 / self.determinant()
     }
@@ -170,6 +172,7 @@ impl Mat4 {
     /// Computes the inverse of a 4x4 matrix.
     /// Source: https://docs.piston.rs/graphics/src/vecmath/lib.rs.html
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn inverse(&self) -> Mat4 {
         let inv_det: f64 = self.inv_determinant();
         let mat: [[f64; 4]; 4] = self.data;

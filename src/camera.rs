@@ -50,8 +50,8 @@ impl Camera {
         let viewport_v: Vec3 = v * -1.0 * vv;
 
         // spacing between each pixel
-        let pixel_delta_u: Vec3 = viewport_u / (config.img_width as f64);
-        let pixel_delta_v: Vec3 = viewport_v / ((config.img_width / ratio) as f64);
+        let pixel_delta_u: Vec3 = viewport_u / (config.img_width);
+        let pixel_delta_v: Vec3 = viewport_v / ((config.img_width / ratio));
 
         // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
         let viewport_upper_left: Vec3 =
@@ -85,7 +85,8 @@ impl Camera {
             "{:?}", c
         );
 
-        return c; 
+        // return c
+        c 
     }
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from
@@ -114,13 +115,11 @@ impl Camera {
         let n1: f64 = rng.gen_range(-0.5..0.5);
         let n2: f64 = rng.gen_range(-0.5..0.5);
 
-        let point = Vec3::new(
+        Vec3::new(
             n1 * self.pixel_delta_u.x(),
             n2 * self.pixel_delta_v.y(),
             0.0,
-        );
-
-        return point;
+        )
     }
 }
 

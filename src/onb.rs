@@ -8,23 +8,24 @@ pub struct Onb {
 
 impl Onb {
     pub fn u(self) -> Vec3 {
-        return self.axis[0]
+        self.axis[0]
     }
 
     pub fn v(self) -> Vec3 {
-        return self.axis[1]
+        self.axis[1]
     }
 
     pub fn w(self) -> Vec3 {
-        return self.axis[2]
+        self.axis[2]
     }
 
+    #[allow(dead_code)]
     pub fn local_abc(self, a: f64, b: f64, c: f64) -> Vec3 {
-        return self.u() * a + self.v() * b + self.w() * c
+        self.u() * a + self.v() * b + self.w() * c
     }
 
     pub fn local_vec(self, vec: Vec3) -> Vec3 {
-        return self.u() * vec.x() + self.v() * vec.y() + self.w() * vec.z()
+        self.u() * vec.x() + self.v() * vec.y() + self.w() * vec.z()
     }
 
     pub fn build_from_w(w: Vec3) -> Self {

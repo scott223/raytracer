@@ -25,11 +25,8 @@ impl BHVNode {
 
         if object_span == 1 {
             // we just have one element, so we can add that as a final node
-            // log::info!(
-            //    "one element left, returning that element as a final node. object n: {}",
-            //    start
-            //);
-            return Box::new(objects[start]);
+
+            Box::new(objects[start])
         } else if object_span == 2 {
             // we have two items, lets see which one comes first and asign in the right order to the end node
             if BHVNode::box_compare(&objects[start], &objects[start + 1]) {
@@ -42,12 +39,7 @@ impl BHVNode {
                     ),
                 };
 
-                // log::info!(
-                //    "Two items, creating end node (BHV with two elements) for n: {} and n+1: {}",
-                //    start,
-                //    start + 1
-                //);
-                return Box::new(node);
+                Box::new(node)
             } else {
                 let node: BHVNode = BHVNode {
                     left: Box::new(objects[start + 1]),
@@ -59,12 +51,13 @@ impl BHVNode {
                 };
 
                 // log::info!("Two items, flipping & creating end node (BHV with two elements) for n: {} and n+1: {}", start+1, start);
-                return Box::new(node);
+                Box::new(node)
             }
         } else {
             // we still have a few elements, so we need to create some more nodes and pass the elements
             // we randomize the axis that we sort on each time
             let n = SmallRng::seed_from_u64(223).gen_range(0..3);
+
             // log::info!("Sorting over {} axis", n);
             objects[start..end].sort_by(|a, b| {
                 a.bounding_box()
@@ -90,19 +83,13 @@ impl BHVNode {
                 bbox,
             };
 
-            // log::info!(
-            //    "More than two items (s: {}, m: {}, e: {}), creating a new layer of BHV nodes.",
-            //    start,
-            //    mid,
-            //    end
-            //);
-            return Box::new(node);
+            Box::new(node)
         }
     }
 
     // compare function to sort, currently only breaks down along the y-axis (this is axis n=1)
     pub fn box_compare(a: &dyn Hittable, b: &dyn Hittable) -> bool {
-        return a.bounding_box().axis(1).interval_min < b.bounding_box().axis(1).interval_min;
+        a.bounding_box().axis(1).interval_min < b.bounding_box().axis(1).interval_min
     }
 }
 
@@ -147,27 +134,18 @@ impl Hittable for BHVNode {
                 match right_hit {
                     Some(rh) => {
                         // we have a closer hit on the right, so return the right hit
-                        return Some(rh);
+                        Some(rh)
                     }
                     _ => {
                         // there is no closer hit on the right, so return the left hit
-                        return Some(lh);
+                        Some(lh)
                     }
                 }
             }
             _ => {
                 // no hit on the left side, so lets try the right with the unmodified interval ray_t
-                let right_hit = self.right.hit(ray, ray_t);
-                match right_hit {
-                    Some(rh) => {
-                        // there is a hit on the right, so we return that hit
-                        return Some(rh);
-                    }
-                    _ => {
-                        // no hit on the left or right, so we return a Nones
-                        return None;
-                    }
-                }
+                // this function returns Some(rh) if a hit is found, and None if no hit is found
+                self.right.hit(ray, ray_t).map(|rh| rh)
             }
         }
     }
@@ -182,7 +160,7 @@ impl Hittable for BHVNode {
     }
     
     // need to implement these for the Hittable trait, but serve little function in the BHVNode
-    fn random(&self, _origin: Vec3, rng: &mut SmallRng) -> Vec3 {
+    fn random(&self, _origin: Vec3, _rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }

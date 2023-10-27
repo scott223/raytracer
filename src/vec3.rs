@@ -71,10 +71,10 @@ impl Vec3 {
     //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
     pub fn new_random_on_hemisphere(normal: &Vec3, rng: &mut impl Rng) -> Self {
         let rv = Vec3::new_random_unit_vector(rng);
-        if rv.dot(&normal) > 0.0 { //in the same hemisphere
-            return rv; 
+        if rv.dot(normal) > 0.0 { //in the same hemisphere
+            rv 
         } else {
-            return -rv;
+            -rv
         }
     }
 
@@ -88,7 +88,7 @@ impl Vec3 {
         let y: f64 = phi.sin() * r2.sqrt();
         let z: f64 = (1.-r2).sqrt();
     
-        return Vec3::new(x, y, z)
+        Vec3::new(x, y, z)
     }
 
     // checks if the vector is almost zero

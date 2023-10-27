@@ -145,9 +145,9 @@ impl Div<f64> for Color {
 
     fn div(self, q: f64) -> Color {
         Color {
-            r: self.r / q as f64,
-            g: self.g / q as f64,
-            b: self.b / q as f64,
+            r: self.r / q,
+            g: self.g / q,
+            b: self.b / q,
         }
     }
 }

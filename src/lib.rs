@@ -92,10 +92,10 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
 
     // start the actual render
     log::info!("Starting render!");
+    let start: Instant = Instant::now();
     let pb: ProgressBar = ProgressBar::new(config.img_height as u64);
 
     // use Rayon parallel iterator to iterate over the bands and render per line
-    let start: Instant = Instant::now();
     bands.into_par_iter().for_each(|(i, band)| {
         render_line(i as i64, band, &camera, &bhv_tree, &lights, &config);
         pb.inc(1);
@@ -130,10 +130,11 @@ pub fn render_line(
         for i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
             let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-            let follow = if x == follow_coords[0] && y as usize == follow_coords[1] { true } else { false };
+            let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+            
             if follow  { log::info!("sample: {}", i); }
 
-            color += ray_color(&bhv_tree, &lights, &config, &ray, config.max_depth, &mut rng, follow);
+            color += ray_color(bhv_tree, lights, &ray, config.max_depth, &mut rng, follow);
         }
 
         if color.has_nan() {
@@ -154,7 +155,6 @@ pub fn render_line(
 fn ray_color(
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
     lights: &Vec<Element>,
-    config: &Config,
     ray: &Ray,
     depth: usize,
     rng: &mut SmallRng,
@@ -166,7 +166,7 @@ fn ray_color(
     }
 
     // we trace the ray to see what it will hit. uses the BHV_tree to figure our what the first hit is
-    let trace = bhv_tree.hit(&ray, &mut Interval::new(0.001, f64::MAX));
+    let trace = bhv_tree.hit(ray, &mut Interval::new(0.001, f64::MAX));
     //let trace = scene.trace(&ray);
 
     match trace {
@@ -189,7 +189,7 @@ fn ray_color(
             }
 
             // we see if we get a scatter from the material
-            if let Some((Some(sscattered), Some(pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
+            if let Some((Some(_scattered), Some(_pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
 
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
 
@@ -207,7 +207,7 @@ fn ray_color(
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                 let target_color: Color =
-                    ray_color(&bhv_tree, &lights, &config, &scattered, depth - 1, rng, follow);
+                    ray_color(bhv_tree, lights, &scattered, depth - 1, rng, follow);
 
                 // get the pdf for that spot on that material
                 let scattering_pdf: f64 =

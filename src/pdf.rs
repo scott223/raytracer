@@ -1,10 +1,11 @@
 use std::f64::consts::PI;
 
-use rand::{Rng, rngs::SmallRng, SeedableRng};
+use rand::{Rng, rngs::SmallRng};
 
 use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
 
 // struct for Probability Density Functions 
+#[allow(dead_code)]
 pub enum PDF {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
