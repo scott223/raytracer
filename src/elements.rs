@@ -4,7 +4,7 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
 use std::fmt::Debug;
-use rand::{Rng};
+use rand::Rng;
 
 use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
@@ -177,7 +177,7 @@ impl Hittable for Triangle {
 
         let tvec = ray.origin - self.v0;
         let u = tvec.dot(&pvec) * inv_det;
-        if u < 0.0 || u > 1.0  { return None };
+        if !(0.0..=1.0).contains(&u) { return None };
 
         let qvec = tvec.cross(&self.v0v1);
         let v = ray.direction.dot(&qvec) * inv_det;
@@ -281,7 +281,8 @@ impl Quad {
 
     //given the hit point in plane coordinates, return none if it is outside the primitive
     pub fn is_interior(a: f64, b: f64) -> Option<Vec<f64>> {
-        if (a < 0.0) || (1.0 < a) || (b < 0.0) || (1.0 < b) {
+
+        if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b){
             return None;
         }
 
@@ -666,7 +667,7 @@ mod tests {
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
 
         match t.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
-            Some(hit) => {
+            Some(_hit) => {
                 //assert_eq!(hit.t, 5.0);
                 //assert_eq!(hit.front_face, false)
             }

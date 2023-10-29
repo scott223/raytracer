@@ -6,7 +6,7 @@ use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
 
 // struct for Probability Density Functions 
 #[allow(dead_code)]
-pub enum PDF {
+pub enum Pdf {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
     HittablePDF(HittablePDF),
@@ -18,22 +18,22 @@ pub trait PDFTrait {
     fn value(&self, direction: Vec3) -> f64;
 }
 
-impl PDFTrait for PDF {
+impl PDFTrait for Pdf {
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         match self {
-            PDF::SpherePDF(s) => s.generate(rng),
-            PDF::CosinePDF(c) => c.generate(rng),
-            PDF::HittablePDF(h) => h.generate(rng),
-            PDF::MixedPDF(m) => m.generate(rng),
+            Pdf::SpherePDF(s) => s.generate(rng),
+            Pdf::CosinePDF(c) => c.generate(rng),
+            Pdf::HittablePDF(h) => h.generate(rng),
+            Pdf::MixedPDF(m) => m.generate(rng),
         }
     }
 
     fn value(&self, direction: Vec3) -> f64 {
         match self {
-            PDF::SpherePDF(s) => s.value(direction),
-            PDF::CosinePDF(c) => c.value(direction),
-            PDF::HittablePDF(h) => h.value(direction),
-            PDF::MixedPDF(m) => m.value(direction),
+            Pdf::SpherePDF(s) => s.value(direction),
+            Pdf::CosinePDF(c) => c.value(direction),
+            Pdf::HittablePDF(h) => h.value(direction),
+            Pdf::MixedPDF(m) => m.value(direction),
         }
     }
 }

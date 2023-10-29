@@ -145,7 +145,7 @@ impl Hittable for BHVNode {
             _ => {
                 // no hit on the left side, so lets try the right with the unmodified interval ray_t
                 // this function returns Some(rh) if a hit is found, and None if no hit is found
-                self.right.hit(ray, ray_t).map(|rh| rh)
+                self.right.hit(ray, ray_t)
             }
         }
     }

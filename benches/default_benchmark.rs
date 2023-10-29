@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use rand::{rngs::SmallRng, SeedableRng};
 use raytracer::vec3::Vec3;
 use raytracer::elements::{Triangle, Hittable};
 use raytracer::materials::{Lambertian, Material};
@@ -10,7 +9,7 @@ use raytracer::interval::Interval;
 pub fn criterion_benchmark(c: &mut Criterion) {
 
     // random unit sphere
-    let mut rng = SmallRng::seed_from_u64(223);
+    //let rng = SmallRng::seed_from_u64(223);
     //c.bench_function("random_unit_sphere", |b| b.iter(|| Vec3::new_random_unit_sphere(&mut rng)));
 
     // triangle hit
@@ -27,7 +26,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("Triangle hit");
     group.bench_function("Regular", | b | b.iter(|| t.hit(&r, &mut i)));
-    group.bench_function("TM", | b | b.iter(|| t.hit_tm(&r, &mut i)));
+    //group.bench_function("TM", | b | b.iter(|| t.hit_tm(&r, &mut i)));
     group.finish();
 }
 

@@ -51,7 +51,7 @@ impl Camera {
 
         // spacing between each pixel
         let pixel_delta_u: Vec3 = viewport_u / (config.img_width);
-        let pixel_delta_v: Vec3 = viewport_v / ((config.img_width / ratio));
+        let pixel_delta_v: Vec3 = viewport_v / (config.img_width / ratio);
 
         // now we position the viewport in front of the camera, taking into account the camera position, the focal length, and the viewport size (we devide those by 2 to put the camera in the middle)
         let viewport_upper_left: Vec3 =

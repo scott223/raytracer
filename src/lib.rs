@@ -1,7 +1,7 @@
 use pdf::{HittablePDF, MixedPDF};
 // Rust imports
 use rand::rngs::SmallRng;
-use rand::{SeedableRng};
+use rand::SeedableRng;
 
 use indicatif::ProgressBar;
 
@@ -37,7 +37,7 @@ use ray::Ray;
 
 use crate::elements::JSONElement;
 
-use crate::pdf::{PDFTrait, PDF, CosinePDF};
+use crate::pdf::{PDFTrait, Pdf, CosinePDF};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -193,9 +193,9 @@ fn ray_color(
 
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
 
-                let light_pdf: PDF = PDF::HittablePDF(HittablePDF::new(hit.point, lights[0]));
-                let cosine_pdf: PDF = PDF::CosinePDF(CosinePDF::new(hit.normal));
-                let mixed_pdf: PDF = PDF::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
+                let light_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, lights[0]));
+                let cosine_pdf: Pdf = Pdf::CosinePDF(CosinePDF::new(hit.normal));
+                let mixed_pdf: Pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
 
                 // generate the direction for the new scattered ray based on the PDF
                 let scattered = Ray::new(hit.point, mixed_pdf.generate(rng));
@@ -246,13 +246,13 @@ fn ray_color(
 mod tests {
     use crate::config::Config;
     use crate::config::Scene;
-    use crate::render;
+
     use std::error::Error;
 
     #[test_log::test]
     fn test_render_full_scene() -> Result<(), Box<dyn Error>> {
-        let config: Config = Config::default();
-        let scene: Scene = Scene::default();
+        let _config: Config = Config::default();
+        let _scene: Scene = Scene::default();
         //render(scene, config)?;
         Ok(())
     }

@@ -53,7 +53,8 @@ impl Mat4 {
 
     /// Creates a new identity 4x4 matrix
     #[inline(always)]
-    pub fn _identity() -> Self {
+    #[allow(dead_code)]
+    pub fn identity() -> Self {
         Mat4 {
             data: [[1., 0., 0., 0.],
                   [0., 1., 0., 0.],
