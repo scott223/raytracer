@@ -6,11 +6,11 @@ use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
 
 // struct for Probability Density Functions 
 #[allow(dead_code)]
-pub enum Pdf {
+pub enum Pdf<'a> {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
     HittablePDF(HittablePDF),
-    MixedPDF(MixedPDF),
+    MixedPDF(MixedPDF<'a>),
 }
 
 pub trait PDFTrait {
@@ -18,7 +18,7 @@ pub trait PDFTrait {
     fn value(&self, direction: Vec3) -> f64;
 }
 
-impl PDFTrait for Pdf {
+impl PDFTrait for Pdf<'_> {
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         match self {
             Pdf::SpherePDF(s) => s.generate(rng),
@@ -38,14 +38,16 @@ impl PDFTrait for Pdf {
     }
 }
 
-pub struct MixedPDF {
+// contains two PDFs
+// need to specify lifetime so that references dont outlive the overal struct
+pub struct MixedPDF <'a>{
     pub origin: Vec3,
-    pub p1: Box<dyn PDFTrait>,
-    pub p2: Box<dyn PDFTrait>,
+    pub p1: &'a Pdf<'a>,
+    pub p2: &'a Pdf<'a>,
 }
 
 // PDF for a hittable object
-impl PDFTrait for MixedPDF {
+impl PDFTrait for MixedPDF<'_> {
     //combine the values from the two PDF's
     fn value(&self, direction: Vec3) -> f64 {
         0.5 * self.p1.value(direction) + 0.5 * self.p2.value(direction)
@@ -62,12 +64,13 @@ impl PDFTrait for MixedPDF {
     }
 }
 
-impl MixedPDF {
-    pub fn new(origin: Vec3, p1: impl PDFTrait + 'static, p2: impl PDFTrait + 'static) -> Self {
+impl MixedPDF<'_> {
+    // the lifetime of the mixed pdf p1 and p2 needs to be the same as the lifetime of the mixed pdf struct itself
+    pub fn new<'a>(origin: Vec3, p1: &'a Pdf, p2: &'a Pdf) -> MixedPDF<'a> {
         MixedPDF { 
             origin,
-            p1: Box::new(p1),
-            p2: Box::new(p2),
+            p1: p1,
+            p2: p2,
          }
     }
 }

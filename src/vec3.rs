@@ -39,14 +39,11 @@ impl Vec3 {
     // creates a vector within a unit sphere (lenght < 1.0)
     pub fn new_random_unit_sphere(rng: &mut impl Rng) -> Self {
         let [x, y, z] = rand_distr::UnitSphere.sample(rng);
-        Self {x, y, z}  
-        
-        //loop {
-        //    let rv = Vec3::new_random(-1.0,1.0, rng);
-        //    if rv.length_squared() < 1.0 {
-        //        return rv
-        //    }
-        //}
+        Self {
+                x,
+                y,
+                z,
+            }  
     }
 
     // creates a random point on a unit disk (length <1.0, z = 0)
@@ -120,8 +117,9 @@ impl Vec3 {
     // fn distance
     // calculate the Euclidean distance between two points
     // d(p, w) = sqrt((px - wx)^2 + (py - wy)^2 + (pz - wz)^2)
+    // TODO add benchmark and replace with x * x to see if its 
     pub fn distance(&self, w: &Vec3) -> f64 {
-        let dx = f64::powf(self.x - w.x(), 2.0);
+        let dx = (self.x - w.x()).powf(2.0);
         let dy = f64::powf(self.y - w.y(), 2.0);
         let dz = f64::powf(self.z - w.z(), 2.0);
         (dx + dy + dz).sqrt()

@@ -119,7 +119,7 @@ pub fn render_line(
 ) {
     let mut rng: SmallRng = SmallRng::seed_from_u64(y as u64);
 
-    for x in 0..config.img_width as usize {
+    for (x, band_item) in band.iter_mut().enumerate().take(config.img_width as usize) {
         // start with black color
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
 
@@ -142,7 +142,7 @@ pub fn render_line(
         }
 
         // set pixel color, but first divide by the number of samples to get the average and return
-        band[x] = color
+        *band_item = color
             .divide_by_samples(config.samples)
             .clamp()
             .linear_to_gamma(2.2);
@@ -189,37 +189,36 @@ fn ray_color(
             }
 
             // we see if we get a scatter from the material
-            if let Some((Some(_scattered), Some(_pdf_val), attenuation)) = hit.material.scatter(ray, &hit, rng) {
+            if let Some(scatter) = hit.material.scatter(ray, &hit, rng) {
 
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
 
                 let light_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, lights[0]));
-                let cosine_pdf: Pdf = Pdf::CosinePDF(CosinePDF::new(hit.normal));
-                let mixed_pdf: Pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, light_pdf, cosine_pdf));
+                //let cosine_pdf: Pdf = Pdf::CosinePDF(CosinePDF::new(hit.normal));
+                let mixed_pdf: Pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, &light_pdf, &scatter.pdf));
 
                 // generate the direction for the new scattered ray based on the PDF
-                let scattered = Ray::new(hit.point, mixed_pdf.generate(rng));
+                let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
 
                 // get the pdf value
-                let pdf_val = mixed_pdf.value(scattered.direction);
-
+                let pdf_val = mixed_pdf.value(scattered_ray.direction);
 
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                 let target_color: Color =
-                    ray_color(bhv_tree, lights, &scattered, depth - 1, rng, follow);
+                    ray_color(bhv_tree, lights, &scattered_ray, depth - 1, rng, follow);
 
                 // get the pdf for that spot on that material
                 let scattering_pdf: f64 =
-                    hit.material.scattering_pdf(ray, &hit, &scattered);
+                    scatter.pdf.value(scattered_ray.direction);
 
                 // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                 // also apply the sample importance weighting
-                let color_from_scatter = (attenuation * target_color * scattering_pdf)/ pdf_val;
+                let color_from_scatter = (scatter.attenuation * target_color * scattering_pdf)/ pdf_val;
 
                 // if we track this pixel, print out extra info
                 if follow {
-                    log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, attenuation, scattering_pdf, pdf_val);
+                    log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
                  }
 
                  if color_from_scatter.has_nan() { log::error!("color has Nan!"); }
