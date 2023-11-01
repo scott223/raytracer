@@ -4,20 +4,19 @@ use crate::{config::Config, ray::Ray, vec3::Vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
-    pub camera_center: Vec3, // location of the lense
-    pub look_at: Vec3, // focal point that the camera is pointed to
-    pub field_of_view: f64, // vertical fov in degrees
-    pub relative_up: Vec3, // camera relative "up" position
-    pub defocus_angle: f64, // variation angle of rays through each pixel
-    pub focus_dist: f64, // distance from camera center to pane of perfect focus
-    pub defocus_disk_u: Vec3,  // defocus disk horizontal radius
-    pub defocus_disk_v: Vec3,  // defocus disk vertical radius
-    pub defocus_radius: f64, // radius of the thin defocus disk
+    pub camera_center: Vec3,       // location of the lense
+    pub look_at: Vec3,             // focal point that the camera is pointed to
+    pub field_of_view: f64,        // vertical fov in degrees
+    pub relative_up: Vec3,         // camera relative "up" position
+    pub defocus_angle: f64,        // variation angle of rays through each pixel
+    pub focus_dist: f64,           // distance from camera center to pane of perfect focus
+    pub defocus_disk_u: Vec3,      // defocus disk horizontal radius
+    pub defocus_disk_v: Vec3,      // defocus disk vertical radius
+    pub defocus_radius: f64,       // radius of the thin defocus disk
     pub viewport_upper_left: Vec3, // calculated field
-    pub pixel_delta_u: Vec3, // calculated field, spacing between each pixel in x
-    pub pixel_delta_v: Vec3, // calculated field, spacing between each pixel in y
-    pub pixel00_loc: Vec3, // calculated field, location of upper left pixel in world axis
-
+    pub pixel_delta_u: Vec3,       // calculated field, spacing between each pixel in x
+    pub pixel_delta_v: Vec3,       // calculated field, spacing between each pixel in y
+    pub pixel00_loc: Vec3,         // calculated field, location of upper left pixel in world axis
 }
 
 // Create a new Camera with a origin and a direction (normalized)
@@ -81,22 +80,24 @@ impl Camera {
         };
 
         // TODO beautify display
-        log::info!(
-            "{:?}", c
-        );
+        log::info!("{:?}", c);
 
         // return c
-        c 
+        c
     }
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from
     // the camera defocus disk.
     pub fn get_prime_ray(self, x: i64, y: i64, rng: &mut impl Rng) -> Ray {
-        
         // get a random point in the camera defocus disk to be used as an origin, or the camera center if the defocus angle <= 0 (this is for focus blur)
         let p: Vec3 = Vec3::new_random_in_unit_disk(rng);
-        let disk_sample: Vec3 = self.camera_center + (self.defocus_disk_u * p.x()) + (self.defocus_disk_v * p.y());
-        let ray_origin: Vec3 = if self.defocus_angle <= 0.0 { self.camera_center } else { disk_sample };
+        let disk_sample: Vec3 =
+            self.camera_center + (self.defocus_disk_u * p.x()) + (self.defocus_disk_v * p.y());
+        let ray_origin: Vec3 = if self.defocus_angle <= 0.0 {
+            self.camera_center
+        } else {
+            disk_sample
+        };
         //println!("origin {:?}", ray_origin);
 
         // establish the the direction of the ray by taking a random sample from the square around the pixel center (this is for anti aliasing)
@@ -111,7 +112,6 @@ impl Camera {
     // generate a random point inside the box of -0.5 and +0.5 units * pixel size around the pixel center
     // TODO: this function now seems to take a lot of the time in a thread, so need to explore how to do this faster
     pub fn pixel_sample_square(self, rng: &mut impl Rng) -> Vec3 {
-
         let n1: f64 = rng.gen_range(-0.5..0.5);
         let n2: f64 = rng.gen_range(-0.5..0.5);
 
@@ -126,9 +126,9 @@ impl Camera {
 #[cfg(test)]
 mod tests {
     use crate::camera::Camera;
+    use crate::color::Color;
     use crate::config::Config;
     use crate::vec3::Vec3;
-    use crate::color::Color;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]
@@ -153,9 +153,15 @@ mod tests {
 
         // assert_approx_eq!(camera.viewport_v, Vec3::new(0.0, -10.0, 0.0));
         // assert_approx_eq!(camera.viewport_u, Vec3::new(17.7777777777, 0.0, 0.0));
-        assert_approx_eq!(camera.viewport_upper_left, Vec3::new(-8.88888888, 5.0, -5.0));
+        assert_approx_eq!(
+            camera.viewport_upper_left,
+            Vec3::new(-8.88888888, 5.0, -5.0)
+        );
         assert_approx_eq!(camera.pixel_delta_u, Vec3::new(0.017361111, 0.0, 0.0));
         assert_approx_eq!(camera.pixel_delta_v, Vec3::new(0.0, -0.017361111, 0.0));
-        assert_approx_eq!(camera.pixel00_loc, Vec3::new(-8.88020833333, 4.9913194444, -5.0));
+        assert_approx_eq!(
+            camera.pixel00_loc,
+            Vec3::new(-8.88020833333, 4.9913194444, -5.0)
+        );
     }
 }

@@ -3,8 +3,8 @@ use crate::mat4::{Mat4, Vec4};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
-use std::fmt::Debug;
 use rand::Rng;
+use std::fmt::Debug;
 
 use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord>;
     fn bounding_box(&self) -> Aabb;
     fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64;
-    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3; 
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3;
 }
 
 // enum for all the different elements, simplified JSON representation
@@ -95,7 +95,7 @@ impl Hittable for Element {
     fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         match *self {
             Element::Sphere(ref s) => s.random(origin, rng),
-            Element::Quad(ref q) => q.random(origin, rng),          
+            Element::Quad(ref q) => q.random(origin, rng),
             Element::Triangle(ref t) => t.random(origin, rng),
         }
     }
@@ -132,7 +132,6 @@ impl JSONTriangle {
 
 impl Triangle {
     pub fn new_from_json_object(json_triangle: JSONTriangle) -> Self {
-
         Triangle::new(
             json_triangle.v0,
             json_triangle.v1,
@@ -147,7 +146,7 @@ impl Triangle {
         let v0v1: Vec3 = v1 - v0;
         let v0v2: Vec3 = v2 - v0;
         let normal = v0v1.cross(&v0v2).normalized();
-        
+
         Triangle {
             v0,
             v1,
@@ -171,23 +170,27 @@ impl Hittable for Triangle {
         // applies culling
         if det < f64::EPSILON {
             return None;
-        }        
+        }
 
         let inv_det = 1. / det;
 
         let tvec = ray.origin - self.v0;
         let u = tvec.dot(&pvec) * inv_det;
-        if !(0.0..=1.0).contains(&u) { return None };
+        if !(0.0..=1.0).contains(&u) {
+            return None;
+        };
 
         let qvec = tvec.cross(&self.v0v1);
         let v = ray.direction.dot(&qvec) * inv_det;
-        if v < 0.0 || u + v > 1.0 { return None };
+        if v < 0.0 || u + v > 1.0 {
+            return None;
+        };
 
         let t = self.v0v2.dot(&qvec) * inv_det;
 
         // check if t is inside the interval (before the camera, and closer than an earlier hit)
         if !ray_t.contains(t) {
-            return None;  
+            return None;
         }
 
         // compute the intersection point
@@ -201,7 +204,6 @@ impl Hittable for Triangle {
             front_face: ray.direction.dot(&self.normal) < 0.0,
             material: self.material,
         })
-
     }
 
     fn bounding_box(&self) -> Aabb {
@@ -281,8 +283,7 @@ impl Quad {
 
     //given the hit point in plane coordinates, return none if it is outside the primitive
     pub fn is_interior(a: f64, b: f64) -> Option<Vec<f64>> {
-
-        if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b){
+        if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b) {
             return None;
         }
 
@@ -338,19 +339,15 @@ impl Hittable for Quad {
         self.bbox
     }
 
-
     // returns the value for the probability distribution function for a given origing and direction
     fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
-        
         // check if this ray actually hits this quad
         let r = Ray::new(origin, direction);
         if let Some(hit) = self.hit(&r, &mut Interval::new(0.001, f64::INFINITY)) {
-            
             let distance_squared = hit.t * hit.t * direction.length_squared();
             let cosine = direction.dot(&hit.normal).abs() / direction.length();
 
             distance_squared / (cosine * self.area)
-
         } else {
             // no hit, so we just retun 0
             0.0
@@ -361,7 +358,6 @@ impl Hittable for Quad {
     // TODO: deal with transformations
 
     fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
-
         let r0 = rng.gen_range(0.0..1.0);
         let r1 = rng.gen_range(0.0..1.0);
 
@@ -390,7 +386,7 @@ impl JSONBox {
             self.a.y().min(self.b.y()),
             self.a.z().min(self.b.z()),
         );
-        
+
         let max: Vec3 = Vec3::new(
             self.a.x().max(self.b.x()),
             self.a.y().max(self.b.y()),
@@ -403,10 +399,9 @@ impl JSONBox {
 
         // create a cube with size 2x2x2 centered around the origin
         // make mutable as we are going to apply the transformations
-        
-        
+
         //         3     7
-        //    2    x - x 
+        //    2    x - x
         //      x - x6|
         //      |0x-| x 4
         //      x - x
@@ -437,9 +432,8 @@ impl JSONBox {
             [0, 7, 4], // back face
             [0, 3, 7],
             [4, 5, 1], // bottom face
-            [1, 0, 4]
-            ];
-
+            [1, 0, 4],
+        ];
 
         // TODO: create one big transformation matrix and apply once
 
@@ -451,7 +445,7 @@ impl JSONBox {
 
         // apply the scaling as per the scaling transformation input from the JSON
         if let Some(s) = self.scale {
-            let tm_scale = Mat4::scale(s.x, s.y , s.z);
+            let tm_scale = Mat4::scale(s.x, s.y, s.z);
             vertices
                 .iter_mut()
                 .for_each(|v| *v = (tm_scale * Vec4::new_from_vec3(*v, 1.0)).to_vec3());

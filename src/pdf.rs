@@ -1,10 +1,14 @@
 use std::f64::consts::PI;
 
-use rand::{Rng, rngs::SmallRng};
+use rand::{rngs::SmallRng, Rng};
 
-use crate::{vec3::Vec3, onb::Onb, elements::{Hittable, Element}};
+use crate::{
+    elements::{Element, Hittable},
+    onb::Onb,
+    vec3::Vec3,
+};
 
-// struct for Probability Density Functions 
+// struct for Probability Density Functions
 #[allow(dead_code)]
 pub enum Pdf<'a> {
     SpherePDF(SpherePDF),
@@ -40,7 +44,7 @@ impl PDFTrait for Pdf<'_> {
 
 // contains two PDFs
 // need to specify lifetime so that references dont outlive the overal struct
-pub struct MixedPDF <'a>{
+pub struct MixedPDF<'a> {
     pub origin: Vec3,
     pub p1: &'a Pdf<'a>,
     pub p2: &'a Pdf<'a>,
@@ -52,7 +56,7 @@ impl PDFTrait for MixedPDF<'_> {
     fn value(&self, direction: Vec3) -> f64 {
         0.5 * self.p1.value(direction) + 0.5 * self.p2.value(direction)
     }
-    
+
     //pick a random ray from one of the PDFs
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         let r = rng.gen_range(0.0..1.0);
@@ -67,11 +71,11 @@ impl PDFTrait for MixedPDF<'_> {
 impl MixedPDF<'_> {
     // the lifetime of the mixed pdf p1 and p2 needs to be the same as the lifetime of the mixed pdf struct itself
     pub fn new<'a>(origin: Vec3, p1: &'a Pdf, p2: &'a Pdf) -> MixedPDF<'a> {
-        MixedPDF { 
+        MixedPDF {
             origin,
             p1: p1,
             p2: p2,
-         }
+        }
     }
 }
 
@@ -87,7 +91,7 @@ impl PDFTrait for HittablePDF {
     fn value(&self, direction: Vec3) -> f64 {
         self.object.pdf_value(self.origin, direction)
     }
-    
+
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         self.object.random(self.origin, rng)
     }
@@ -95,13 +99,13 @@ impl PDFTrait for HittablePDF {
 
 impl HittablePDF {
     pub fn new(origin: Vec3, object: Element) -> Self {
-        HittablePDF { value: 0., 
-            origin, 
+        HittablePDF {
+            value: 0.,
+            origin,
             object,
-         }
+        }
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpherePDF {
@@ -113,7 +117,7 @@ impl PDFTrait for SpherePDF {
     fn value(&self, _direction: Vec3) -> f64 {
         1. / (4. * PI)
     }
-    
+
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         Vec3::new_random_unit_vector(rng)
     }

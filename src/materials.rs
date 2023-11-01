@@ -1,10 +1,11 @@
+use std::cell::Ref;
 use std::f64::consts::PI;
 
-use crate::pdf::{Pdf, CosinePDF};
-use crate::{color::Color, onb::Onb};
 use crate::elements::HitRecord;
+use crate::pdf::{CosinePDF, Pdf};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use crate::{color::Color, onb::Onb};
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -23,39 +24,66 @@ pub struct ScatterRecord<'a> {
     pub pdf: Pdf<'a>,
 }
 
-pub struct ReflectRecord {
-    reflected: Vec3,
-    ray: Ray,
-}
-
 // trait for a material that scatters
 pub trait Scatterable {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<ScatterRecord>;
+    fn scatter(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ScatterRecord>;
     //fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
-pub trait Emmits {
-    fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color>;
+// link the trait implementation to the materials
+impl Scatterable for Material {
+    fn scatter(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ScatterRecord> {
+        match self {
+            Material::Lambertian(l) => l.scatter(ray, hit_record, rng),
+            _ => None,
+        }
+    }
+}
+
+pub struct ReflectRecord {
+    pub attenuation: Color,
+    pub ray: Option<Ray>,
+}
+
+// trait for a material that reflects
+pub trait Reflects {
+    fn reflect(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ReflectRecord>;
+    //fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
 // link the trait implementation to the materials
 // we now assume every material scatters, so each material needs a scatter function
-impl Scatterable for Material {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<ScatterRecord> {
+impl Reflects for Material {
+    fn reflect(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ReflectRecord> {
         match self {
-            Material::Lambertian(l) => l.scatter(ray, hit_record, rng),
-            _ =>  None,
+            Material::Metal(m) => m.reflect(ray, hit_record, rng),
+            _ => None,
         }
     }
+}
 
-//    fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
-//        match self {
-//            Material::Lambertian(l) => l.scattering_pdf(ray, hit_record, scattered_ray),
-//            Material::Metal(m) => m.scattering_pdf(ray, hit_record, scattered_ray),
-//            Material::Dielectric(d) => d.scattering_pdf(ray, hit_record, scattered_ray),
-//            _ =>  1.0,
-//        }
-//    }
+pub trait Emmits {
+    fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color>;
 }
 
 impl Emmits for Material {
@@ -106,22 +134,21 @@ impl Lambertian {
 
 impl Scatterable for Lambertian {
     // create a scattered ray, randomized but with a lambartian distribution around the normal
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<ScatterRecord> {
+    fn scatter(
+        &self,
+        _ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ScatterRecord> {
         //lambertian pdf
 
-        let scatter: ScatterRecord = ScatterRecord { 
-            attenuation: self.albedo, 
-            pdf: Pdf::CosinePDF(CosinePDF::new(hit_record.normal)) 
+        let scatter: ScatterRecord = ScatterRecord {
+            attenuation: self.albedo,
+            pdf: Pdf::CosinePDF(CosinePDF::new(hit_record.normal)),
         };
 
         Some(scatter)
     }
-
-    // can we take this out?
-   // fn scattering_pdf(&self, _ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64 {
-   //     let cos_theta = hit_record.normal.dot(&scattered_ray.direction);
-   //     if cos_theta < 0.0 { 0.0 } else { cos_theta / PI }
-   // }
 }
 
 // Metal material, with a fuzz factor. Metal reflects all rays in a predictable way (normal reflection)
@@ -137,28 +164,43 @@ impl Metal {
     }
 }
 
-// reflect a ray with the same outgoing angle as incoming angle with the normal
-fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
-    *v - *n * (2.0 * v.dot(n))
+impl Reflects for Metal {
+    fn reflect(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ReflectRecord> {
+        // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
+        // todo check if fuzz is between 0.0..1.0 
+        
+        let new_direction = reflect_vector(&ray.direction.normalized(), &hit_record.normal)
+            + Vec3::new_random_unit_vector(rng) * self.fuzz;
+
+        if hit_record.normal.dot(&new_direction) > 0.0 {
+            // the reflected ray, including fuzz unit sphere, is outside the material, so return a reflected ray
+            let reflected = Ray::new(hit_record.point, new_direction);
+            let reflect_record = ReflectRecord {
+                attenuation: self.albedo,
+                ray: Some(reflected),
+            };
+
+            return Some(reflect_record);
+        } else {
+            // return no ray, as the ray is absorbed by the material (due to fuzz factor)
+            let reflect_record = ReflectRecord {
+                attenuation: self.albedo,
+                ray: None,
+            };
+
+            return Some(reflect_record);
+        }
+    }
 }
 
-impl Scatterable for Metal {
-    // create a reflected ray
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<ScatterRecord> {
-            // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
-          //  let new_direction = reflect(&ray.direction.normalized(), &hit_record.normal)
-          //      + Vec3::new_random_unit_vector(rng) * self.fuzz;
-
-        //    if hit_record.normal.dot(&new_direction) > 0.0 {
-                // the reflected ray, including fuzz unit sphere, is outside the material, so return a reflected ray
-         //       let reflected = Ray::new(hit_record.point, new_direction);
-         //       Some((Some(reflected), Some(1.0), self.albedo))
-        //    } else {
-                // return no ray, as the ray is absorbed by the material (due to fuzz factor)
-        //        Some((None, None, self.albedo))
-        //    }
-        None
-    }
+// reflect a ray with the same outgoing angle as incoming angle with the normal
+fn reflect_vector(v: &Vec3, n: &Vec3) -> Vec3 {
+    *v - *n * (2.0 * v.dot(n))
 }
 
 // refract a ray (for dielectric / glass materials)
@@ -170,7 +212,6 @@ fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
     let r_out_parallel: Vec3 = *n * (((1.0 - r_out_perp.length_squared()).abs()).sqrt() * -1.0);
     r_out_perp + r_out_parallel
 }
-
 
 // check reflectance
 // source: raytracing in one weekend
@@ -196,9 +237,14 @@ impl Dielectric {
 
 // source: Ray tracing in one Weekend
 impl Scatterable for Dielectric {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord, rng: &mut impl Rng) -> Option<ScatterRecord> {
+    fn scatter(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<ScatterRecord> {
         //let mut rng = rand::thread_rng();
-        /* 
+        /*
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
         let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
         let unit_direction: Vec3 = ray.direction.normalized(); // this should already be normalized, so we could remove this .normalize
@@ -221,7 +267,6 @@ impl Scatterable for Dielectric {
         */
         None
     }
-    
 }
 
 //TODO Tests

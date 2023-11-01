@@ -6,8 +6,8 @@ use crate::interval::Interval;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
-use rand::{Rng, SeedableRng};
 use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
 // this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
 // it will only have a left or a right object
@@ -77,11 +77,7 @@ impl BHVNode {
             let bbox = Aabb::new_from_aabbs(left.bounding_box(), right.bounding_box());
 
             // create the node
-            let node: BHVNode = BHVNode {
-                left,
-                right,
-                bbox,
-            };
+            let node: BHVNode = BHVNode { left, right, bbox };
 
             Box::new(node)
         }
@@ -158,7 +154,7 @@ impl Hittable for BHVNode {
     fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
         0.0
     }
-    
+
     // need to implement these for the Hittable trait, but serve little function in the BHVNode
     fn random(&self, _origin: Vec3, _rng: &mut SmallRng) -> Vec3 {
         Vec3::new(1.0, 0.0, 0.0)

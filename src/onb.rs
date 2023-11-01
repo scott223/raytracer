@@ -30,7 +30,11 @@ impl Onb {
 
     pub fn build_from_w(w: Vec3) -> Self {
         let unit_w = w.normalized();
-        let a = if unit_w.x().abs() > 0.9 { Vec3::new(0., 1., 0.) } else { Vec3::new(1.0, 0., 0.) };
+        let a = if unit_w.x().abs() > 0.9 {
+            Vec3::new(0., 1., 0.)
+        } else {
+            Vec3::new(1.0, 0., 0.)
+        };
 
         let v = unit_w.cross(&a).normalized();
         let u = unit_w.cross(&v);

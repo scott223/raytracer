@@ -1,11 +1,11 @@
 use crate::color::Color;
+use crate::elements::*;
+use crate::interval::Interval;
+use crate::materials::*;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::interval::Interval;
-use crate::elements::*;
-use crate::materials::*;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct Config {
@@ -23,9 +23,9 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let r: f64 = 16.0/9.0; //aspect ratio
+        let r: f64 = 16.0 / 9.0; //aspect ratio
         let w: f64 = 1024.0; //image width
-        let h: f64 = w/r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
+        let h: f64 = w / r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
         let fov: f64 = 90.0;
 
         let s: usize = 1; //samples
@@ -48,7 +48,6 @@ impl Default for Config {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JSONScene {
     pub elements: Vec<JSONElement>,
@@ -62,9 +61,8 @@ pub struct Scene {
 
 impl Default for Scene {
     fn default() -> Self {
-
         let lambertian_1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
- //       let lambertian_2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));
+        //       let lambertian_2 = Material::Lambertian(Lambertian::new(Color::new(0.6, 0.7, 0.4)));
 
         let metal: Material = Material::Metal(Metal::new(Color::new(0.8, 0.7, 0.7), 0.1));
         let glass: Material = Material::Dielectric(Dielectric::new(1.5));
@@ -73,21 +71,20 @@ impl Default for Scene {
             elements: vec![
                 Element::Sphere(Sphere::new(Vec3::new(0.0, -1.0, -25.0), 2.0, metal)),
                 Element::Sphere(Sphere::new(Vec3::new(-3.0, -1.25, -23.0), 1.5, glass)),
-                Element::Sphere(Sphere::new(Vec3::new(2.0, -2.0, -20.0), 1.0, lambertian_1)),             
- //               Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), lambertian_2)),
+                Element::Sphere(Sphere::new(Vec3::new(2.0, -2.0, -20.0), 1.0, lambertian_1)),
+                //               Element::Plane(Plane::new(Vec3::new(0.0, -2.5, 0.0), Vec3::new(0.0, -1.0, 0.0), lambertian_2)),
             ],
         }
     }
 }
 
 impl Scene {
-
     // fn trace_hits
     // find the nearest hit for a ray
     pub fn trace(&self, ray: &Ray) -> Option<HitRecord> {
         self.elements
             .iter()
             .filter_map(|e| e.hit(ray, &mut Interval::new(0.001, f64::MAX)))
-            .min_by(|i1, i2 | i1.t.partial_cmp(&i2.t).unwrap())
+            .min_by(|i1, i2| i1.t.partial_cmp(&i2.t).unwrap())
     }
 }

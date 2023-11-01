@@ -11,14 +11,10 @@ pub struct Ray {
 // Creating a new Ray with a origin and a direction (normalized)
 impl Ray {
     pub fn new(origin: Vec3, direction: Vec3) -> Self {
-        
         let dir_norm = direction.normalized();
 
-        let inverted_direction = Vec3::new(
-            1.0 / dir_norm.x(),
-            1.0 / dir_norm.y(),
-            1.0 / dir_norm.z()
-        );
+        let inverted_direction =
+            Vec3::new(1.0 / dir_norm.x(), 1.0 / dir_norm.y(), 1.0 / dir_norm.z());
 
         Ray {
             origin,

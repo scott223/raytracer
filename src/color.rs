@@ -18,11 +18,7 @@ pub struct Color {
 impl Color {
     // creates a new color
     pub fn new(r: f64, g: f64, b: f64) -> Self {
-        Color { 
-            r,
-            g,
-            b,
-        }
+        Color { r, g, b }
     }
 
     // divides the color by the number of samples
@@ -45,7 +41,11 @@ impl Color {
 
     //apply gamma correction
     pub fn linear_to_gamma(&self, correction: f64) -> Self {
-        Color::new(self.r.powf(1.0/correction), self.g.powf(1.0/correction), self.b.powf(1.0/correction))
+        Color::new(
+            self.r.powf(1.0 / correction),
+            self.g.powf(1.0 / correction),
+            self.b.powf(1.0 / correction),
+        )
     }
 
     //to Rgb, first clamp to max 1.0 and min 0.0. so we dont overflow
@@ -200,7 +200,7 @@ mod tests {
         let c = Color::new(0.5, 0.4, -2.3);
         let d = Color::new(0.1, 1.0, 0.1);
         let e = c + d;
-        println!("e: {:?}",e);
+        println!("e: {:?}", e);
         let f = e.clamp();
 
         assert_approx_eq!(f.r, 0.6);
@@ -213,9 +213,9 @@ mod tests {
         let correction: f64 = 2.2;
         let c = Color::new(0.5, 0.4, 0.3).linear_to_gamma(correction);
 
-        assert_approx_eq!(c.r, 0.5_f64.powf(1.0/correction));
-        assert_approx_eq!(c.g, 0.4_f64.powf(1.0/correction));
-        assert_approx_eq!(c.b, 0.3_f64.powf(1.0/correction));
+        assert_approx_eq!(c.r, 0.5_f64.powf(1.0 / correction));
+        assert_approx_eq!(c.g, 0.4_f64.powf(1.0 / correction));
+        assert_approx_eq!(c.b, 0.3_f64.powf(1.0 / correction));
     }
 
     #[test_log::test]

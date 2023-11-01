@@ -13,17 +13,25 @@ pub struct Aabb {
 }
 
 impl Default for Aabb {
-    fn default() -> Self  {
+    fn default() -> Self {
         Aabb {
-            x: Interval { interval_min: 0.0, interval_max:0.0 },
-            y: Interval { interval_min: 0.0, interval_max:0.0 },
-            z: Interval { interval_min: 0.0, interval_max:0.0 },
+            x: Interval {
+                interval_min: 0.0,
+                interval_max: 0.0,
+            },
+            y: Interval {
+                interval_min: 0.0,
+                interval_max: 0.0,
+            },
+            z: Interval {
+                interval_min: 0.0,
+                interval_max: 0.0,
+            },
         }
     }
 }
 
 impl Aabb {
-    
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
         Aabb { x, y, z }
     }
@@ -45,12 +53,24 @@ impl Aabb {
     }
 
     // return an AABB that has no side narrower than some delta, padding if necessary
-    pub fn pad(&self) -> Self { 
+    pub fn pad(&self) -> Self {
         let delta: f64 = 0.0001;
 
-        let new_x: Interval = if self.x.size() >= delta { self.x } else {self.x.expand(delta)};
-        let new_y: Interval = if self.y.size() >= delta { self.y } else {self.y.expand(delta)};
-        let new_z: Interval = if self.z.size() >= delta { self.z } else {self.z.expand(delta)};
+        let new_x: Interval = if self.x.size() >= delta {
+            self.x
+        } else {
+            self.x.expand(delta)
+        };
+        let new_y: Interval = if self.y.size() >= delta {
+            self.y
+        } else {
+            self.y.expand(delta)
+        };
+        let new_z: Interval = if self.z.size() >= delta {
+            self.z
+        } else {
+            self.z.expand(delta)
+        };
 
         Aabb {
             x: new_x,
@@ -71,8 +91,10 @@ impl Aabb {
     // checks if we have a hit with the aabb, in a given interval
     pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
         for a in 0..3_usize {
-            let mut t0: f64 = (self.axis(a).interval_min - ray.origin.axis(a)) * ray.inv_dir.axis(a);
-            let mut t1: f64 = (self.axis(a).interval_max - ray.origin.axis(a)) * ray.inv_dir.axis(a);
+            let mut t0: f64 =
+                (self.axis(a).interval_min - ray.origin.axis(a)) * ray.inv_dir.axis(a);
+            let mut t1: f64 =
+                (self.axis(a).interval_max - ray.origin.axis(a)) * ray.inv_dir.axis(a);
 
             // we need to swap t0 and t1
             if ray.inv_dir.axis(a) < 0.0 {

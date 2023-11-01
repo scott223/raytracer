@@ -13,12 +13,13 @@
           "z": 165.0
         },
         "material": {
-          "Lambertian": {
+          "Metal": {
             "albedo": {
-              "r": 0.73,
-              "g": 0.73,
+              "r": 0.2,
+              "g": 0.2,
               "b": 0.73
-            }
+            },
+            "fuzz": 0.0
           }
         },
         "transpose" : {

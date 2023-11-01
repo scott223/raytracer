@@ -22,9 +22,9 @@ pub mod interval;
 mod mat4;
 pub mod materials;
 mod onb;
+mod pdf;
 pub mod ray;
 pub mod vec3;
-mod pdf;
 
 use bhv::BHVNode;
 use camera::Camera;
@@ -37,7 +37,8 @@ use ray::Ray;
 
 use crate::elements::JSONElement;
 
-use crate::pdf::{PDFTrait, Pdf, CosinePDF};
+use crate::materials::Reflects;
+use crate::pdf::{CosinePDF, PDFTrait, Pdf};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -131,8 +132,10 @@ pub fn render_line(
             // get multiple rays for anti alliasing, and add the colors
             let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
             let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
-            
-            if follow  { log::info!("sample: {}", i); }
+
+            if follow {
+                log::info!("sample: {}", i);
+            }
 
             color += ray_color(bhv_tree, lights, &ray, config.max_depth, &mut rng, follow);
         }
@@ -179,23 +182,21 @@ fn ray_color(
 
             // we hit a light, so we return the color from emmission and end here
             if let Some(c) = hit.material.emitted(ray, &hit) {
-                
                 if follow {
                     log::info!("emmitting, returning color c {:?}", c);
                 }
-                
-                return c;
 
+                return c;
             }
 
             // we see if we get a scatter from the material
             if let Some(scatter) = hit.material.scatter(ray, &hit, rng) {
-
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
 
                 let light_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, lights[0]));
                 //let cosine_pdf: Pdf = Pdf::CosinePDF(CosinePDF::new(hit.normal));
-                let mixed_pdf: Pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, &light_pdf, &scatter.pdf));
+                let mixed_pdf: Pdf =
+                    Pdf::MixedPDF(MixedPDF::new(hit.point, &light_pdf, &scatter.pdf));
 
                 // generate the direction for the new scattered ray based on the PDF
                 let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
@@ -209,29 +210,43 @@ fn ray_color(
                     ray_color(bhv_tree, lights, &scattered_ray, depth - 1, rng, follow);
 
                 // get the pdf for that spot on that material
-                let scattering_pdf: f64 =
-                    scatter.pdf.value(scattered_ray.direction);
+                let scattering_pdf: f64 = scatter.pdf.value(scattered_ray.direction);
 
                 // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                 // also apply the sample importance weighting
-                let color_from_scatter = (scatter.attenuation * target_color * scattering_pdf)/ pdf_val;
+                let color_from_scatter =
+                    (scatter.attenuation * target_color * scattering_pdf) / pdf_val;
 
                 // if we track this pixel, print out extra info
                 if follow {
                     log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
-                 }
+                }
 
-                 if color_from_scatter.has_nan() { log::error!("color has Nan!"); }
+                if color_from_scatter.has_nan() {
+                    log::error!("color has Nan!");
+                }
 
                 return color_from_scatter;
+            }
 
+            // did we get a reflection?
+            if let Some(reflect) = hit.material.reflect(ray, &hit, rng) {
+
+                if let Some(reflected_ray) = reflect.ray {
+                    // there is refleced ray, so lets follow that one
+                    let target_color: Color =
+                    ray_color(bhv_tree, lights, &reflected_ray, depth - 1, rng, follow);
+                    return reflect.attenuation * target_color;
+                } else {
+                    //no reflected ray, just return the attentuation
+                    return reflect.attenuation;
+                }
 
             }
 
             // no emmission, nor scatter. just return black
             Color::new(0.0, 0.0, 0.0)
-
-        },
+        }
         None => {
             // we did not hit anything, so we return the color of the sky but with a little gradient
             //let a = 0.5 * (ray.direction.y() + 1.0);
