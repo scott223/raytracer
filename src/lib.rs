@@ -84,7 +84,7 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
     let pb: ProgressBar = ProgressBar::new(config.img_height as u64);
 
     // use Rayon parallel iterator to iterate over the bands and render per line
-    bands.into_iter().for_each(|(i, band)| {
+    bands.into_par_iter().for_each(|(i, band)| {
         render_line(i as i64, band, &camera, &bhv_tree, &attractors, &config);
         pb.inc(1);
     });
