@@ -1,5 +1,8 @@
+use std::f64::consts::*;
+
 use crate::interval::Interval;
 use crate::mat4::{Mat4, Vec4};
+use crate::onb::Onb;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
@@ -42,6 +45,19 @@ pub enum Element {
     Sphere(Sphere),
     Quad(Quad),
     Triangle(Triangle),
+}
+
+//implement the methods for the Element
+impl Element {
+
+    // returns true if marked as an attractor
+    pub fn is_attractor(&self) -> bool {
+        match *self {
+            Element::Sphere(ref s) => s.is_attractor(),
+            Element::Quad(ref q) => q.is_attractor(),
+            _ => false
+        }
+    }
 }
 
 // element transformations
@@ -228,11 +244,12 @@ pub struct JSONQuad {
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
+    pub attractor: Option<bool>,
 }
 
 impl JSONQuad {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
-        let object = Element::Quad(Quad::new(self.q, self.u, self.v, self.material));
+        let object = Element::Quad(Quad::new(self.q, self.u, self.v, self.material, self.attractor));
         objects.push(object);
     }
 }
@@ -244,6 +261,7 @@ pub struct Quad {
     pub u: Vec3,
     pub v: Vec3,
     pub material: Material,
+    pub attractor: Option<bool>,
 
     //following fields are used for every hit calculation, so we pre-calculate in the constructor
     pub n: Vec3,
@@ -256,11 +274,11 @@ pub struct Quad {
 
 impl Quad {
     pub fn new_from_json_object(json_quad: JSONQuad) -> Self {
-        Quad::new(json_quad.q, json_quad.u, json_quad.v, json_quad.material)
+        Quad::new(json_quad.q, json_quad.u, json_quad.v, json_quad.material, json_quad.attractor)
     }
 
     // Creating a new Quad with lower left point Q and vectors u and v
-    pub fn new(q: Vec3, u: Vec3, v: Vec3, material: Material) -> Self {
+    pub fn new(q: Vec3, u: Vec3, v: Vec3, material: Material, attractor: Option<bool>) -> Self {
         let n: Vec3 = u.cross(&v);
         let normal: Vec3 = n.normalized();
         let d: f64 = normal.dot(&q);
@@ -278,6 +296,7 @@ impl Quad {
             area,
             material,
             bbox: Aabb::new_from_points(q, q + u + v).pad(),
+            attractor,
         }
     }
 
@@ -289,6 +308,15 @@ impl Quad {
 
         // we have this work around as we dont determine the u and v in the hitrecord yet
         Some(vec![a, b])
+    }
+
+    // returns true if self.attractor is set to true
+    pub fn is_attractor(&self) -> bool {
+        if let Some(true) = self.attractor {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -507,6 +535,7 @@ pub struct JSONSphere {
     pub center: Vec3,
     pub radius: f64,
     pub material: Material,
+    pub attractor: Option<bool>,
     pub transpose: Option<Transpose>,
 }
 
@@ -520,7 +549,7 @@ impl JSONSphere {
             center = (tm * Vec4::new_from_vec3(center, 1.0)).to_vec3();
         }
 
-        let object = Element::Sphere(Sphere::new(center, self.radius, self.material));
+        let object = Element::Sphere(Sphere::new(center, self.radius, self.material, self.attractor));
         objects.push(object);
     }
 }
@@ -532,17 +561,18 @@ pub struct Sphere {
     pub radius: f64,
     pub material: Material,
     pub bbox: Aabb,
+    pub attractor: Option<bool>,
 }
 
 // Creating a new Sphere with a center and a radius
 impl Sphere {
     // create a new sphere based on the JSON object
     pub fn new_from_json_object(json_sphere: JSONSphere) -> Self {
-        Sphere::new(json_sphere.center, json_sphere.radius, json_sphere.material)
+        Sphere::new(json_sphere.center, json_sphere.radius, json_sphere.material, json_sphere.attractor)
     }
 
     // create a new sphere
-    pub fn new(center: Vec3, radius: f64, material: Material) -> Self {
+    pub fn new(center: Vec3, radius: f64, material: Material, attractor: Option<bool>) -> Self {
         let rvec = Vec3::new(radius, radius, radius);
         let bbox = Aabb::new_from_points(center - rvec, center + rvec);
 
@@ -551,6 +581,15 @@ impl Sphere {
             radius,
             material,
             bbox,
+            attractor,
+        }
+    }
+
+    pub fn is_attractor(&self) -> bool {
+        if let Some(true) = self.attractor {
+            true
+        } else {
+            false
         }
     }
 }
@@ -617,13 +656,46 @@ impl Hittable for Sphere {
         self.bbox
     }
 
-    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
-        0.0
+    // returns the probability distribution factor for a given ray
+    // source: ray tracing in one weekend
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        // This method only works for stationary spheres
+
+        let ray = Ray::new(origin, direction);
+        if let Some(_hit) = self.hit(&ray, &mut Interval::new(0.001, f64::INFINITY)) {
+            
+            let cos_theta_max = (1. - self.radius * self.radius / (self.center - origin).length_squared() ).sqrt();
+            let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+
+            //println!("did hit");
+            1. / solid_angle
+        
+        } else {
+            //no hit, return 0 as pdf
+            0.
+        }
     }
 
-    fn random(&self, _origin: Vec3, _rng: &mut SmallRng) -> Vec3 {
-        Vec3::new(1.0, 0.0, 0.0)
+    // returns a random point on the sphere
+    // source: raytracing in one weekend
+    fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
+        let direction: Vec3 = self.center - origin;
+        let uvw: Onb = Onb::build_from_w(direction);
+        uvw.local_vec(random_to_sphere(self.radius, direction.length_squared(), rng))
     }
+
+}
+
+pub fn random_to_sphere(radius: f64, distance_squared: f64, rng: &mut SmallRng) -> Vec3 {
+    let r1: f64 = rng.gen_range(0.0..1.0);
+    let r2: f64 = rng.gen_range(0.0..1.0);
+    let z: f64 = 1.0 + r2 * ((1.0 - radius*radius/distance_squared).sqrt() - 1.0);
+
+    let phi: f64 = 2.0 * PI * r1;
+    let x: f64 = phi.cos()*(1.0-z*z).sqrt();
+    let y: f64 = phi.sin()*(1.0-z*z).sqrt();
+
+    return Vec3::new(x, y, z);
 }
 
 #[cfg(test)]

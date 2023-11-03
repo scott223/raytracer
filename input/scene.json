@@ -1,4 +1,19 @@
 { 
+  "camera": {
+    "camera_center": {
+      "x": 278.0,
+      "y": 278.0,
+      "z": -800.0
+    },
+    "camera_look_at": {
+      "x": 278.0,
+      "y": 278.0,
+      "z": 0.0
+    },
+    "camera_fov_vertical": 40.0,
+    "camera_defocus_angle": 0.0,
+    "camera_focus_dist": 800.0
+  },
   "elements": [
     {
       "JSONBox": {
@@ -19,7 +34,7 @@
               "g": 0.2,
               "b": 0.73
             },
-            "fuzz": 0.0
+            "fuzz": 0.1
           }
         },
         "transpose" : {
@@ -35,36 +50,19 @@
       }
     },
     {
-      "JSONBox": {
-        "a": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+      "JSONSphere": {
+        "center": {
+          "x": 220.0,
+          "y": 70.0,
+          "z": 95.0
         },
-        "b": {
-          "x": 165.0,
-          "y": 165.0,
-          "z": 165.0
-        },
+        "radius": 90.0,
         "material": {
-          "Lambertian": {
-            "albedo": {
-              "r": 0.73,
-              "g": 0.73,
-              "b": 0.73
-            }
+          "Dielectric": {
+            "index_of_refraction": 1.5
           }
         },
-        "transpose" : {
-          "x": 130.0,
-          "y": 0.0,
-          "z": 65.0
-        },
-        "rotate" : {
-          "theta_x": 0.0,
-          "theta_y": 0.35,
-          "theta_z": 0.0
-        }
+        "attractor": false
       }
     },     
         {
@@ -404,36 +402,35 @@
         }
       }
     }
-  }
-],
-"lights": [
-    {
-      "JSONQuad": {
-        "q": {
-          "x": 343.0,
-          "y": 554.0,
-          "z": 332.0
-        },
-        "u": {
-          "x": -130.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "v": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": -105.0
-        },
-        "material": {
-          "DiffuseLight": {
-            "albedo": {
-              "r": 5.0,
-              "g": 5.0,
-              "b": 5.0
-            }
+  },
+  {
+    "JSONQuad": {
+      "q": {
+        "x": 343.0,
+        "y": 554.0,
+        "z": 332.0
+      },
+      "u": {
+        "x": -130.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "v": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -105.0
+      },
+      "material": {
+        "DiffuseLight": {
+          "albedo": {
+            "r": 8.0,
+            "g": 8.0,
+            "b": 8.0
           }
         }
-      }
+      },
+      "attractor": true
     }
-  ]
+  }
+]
 }

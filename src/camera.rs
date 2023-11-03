@@ -1,6 +1,16 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 use crate::{config::Config, ray::Ray, vec3::Vec3};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct JSONCamera {
+    pub camera_center: Vec3,
+    pub camera_look_at: Vec3,
+    pub camera_fov_vertical: f64,
+    pub camera_defocus_angle: f64,
+    pub camera_focus_dist: f64,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
@@ -22,14 +32,14 @@ pub struct Camera {
 // Create a new Camera with a origin and a direction (normalized)
 // this function setts up the viewport, and calculates the location of the upper left pixel (00)
 impl Camera {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: &Config, json_camera: &JSONCamera) -> Self {
         let relative_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
 
-        let camera_center: Vec3 = config.camera_center;
-        let look_at = config.camera_look_at;
-        let focus_dist = config.camera_focus_dist;
+        let camera_center: Vec3 = json_camera.camera_center;
+        let look_at = json_camera.camera_look_at;
+        let focus_dist = json_camera.camera_focus_dist;
 
-        let field_of_view = config.camera_fov_vertical;
+        let field_of_view = json_camera.camera_fov_vertical;
 
         let ratio = config.img_width / config.img_height;
 
@@ -58,7 +68,7 @@ impl Camera {
         let pixel00_loc: Vec3 = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
         // calculate the defocus disk radius and coordinates
-        let defocus_angle = config.camera_defocus_angle;
+        let defocus_angle = json_camera.camera_defocus_angle;
         let defocus_radius: f64 = focus_dist * ((defocus_angle / 2.0).to_radians().tan());
         let defocus_disk_u: Vec3 = u * defocus_radius;
         let defocus_disk_v: Vec3 = v * defocus_radius;

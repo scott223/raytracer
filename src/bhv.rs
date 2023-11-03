@@ -21,11 +21,9 @@ impl BHVNode {
     pub fn new(objects: &mut Vec<Element>, start: usize, end: usize) -> Box<dyn Hittable + Sync> {
         // see how many elements we still have left
         let object_span: usize = end - start;
-        //log::info!("start: {}, end: {}, span: {}", start, end, object_span);
 
         if object_span == 1 {
             // we just have one element, so we can add that as a final node
-
             Box::new(objects[start])
         } else if object_span == 2 {
             // we have two items, lets see which one comes first and asign in the right order to the end node
@@ -41,6 +39,7 @@ impl BHVNode {
 
                 Box::new(node)
             } else {
+                
                 let node: BHVNode = BHVNode {
                     left: Box::new(objects[start + 1]),
                     right: Box::new(objects[start]),

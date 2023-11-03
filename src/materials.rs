@@ -1,11 +1,8 @@
-use std::cell::Ref;
-use std::f64::consts::PI;
-
 use crate::elements::HitRecord;
 use crate::pdf::{CosinePDF, Pdf};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::{color::Color, onb::Onb};
+use crate::color::Color;
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -32,7 +29,6 @@ pub trait Scatterable {
         hit_record: &HitRecord,
         rng: &mut impl Rng,
     ) -> Option<ScatterRecord>;
-    //fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
 // link the trait implementation to the materials
@@ -50,8 +46,10 @@ impl Scatterable for Material {
     }
 }
 
+// reflectance of a material
 pub struct ReflectRecord {
     pub attenuation: Color,
+    // note that Ray is an option here, if the material absorbs the ray due to the fuzz factor
     pub ray: Option<Ray>,
 }
 
@@ -63,11 +61,9 @@ pub trait Reflects {
         hit_record: &HitRecord,
         rng: &mut impl Rng,
     ) -> Option<ReflectRecord>;
-    //fn scattering_pdf(&self, ray: &Ray, hit_record: &HitRecord, scattered_ray: &Ray) -> f64;
 }
 
 // link the trait implementation to the materials
-// we now assume every material scatters, so each material needs a scatter function
 impl Reflects for Material {
     fn reflect(
         &self,
@@ -82,6 +78,37 @@ impl Reflects for Material {
     }
 }
 
+pub struct RefractRecord {
+    pub attenuation: Color,
+    pub ray: Ray,
+}
+
+// trait for a material that refracts
+pub trait Refracts {
+    fn refract(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<RefractRecord>;
+}
+
+// link the trait implementation to the materials
+impl Refracts for Material {
+    fn refract(
+        &self,
+        ray: &Ray,
+        hit_record: &HitRecord,
+        rng: &mut impl Rng,
+    ) -> Option<RefractRecord> {
+        match self {
+            Material::Dielectric(d) => d.refract(ray, hit_record, rng),
+            _ => None,
+        }
+    }
+}
+
+//trait for a material that emmits, will just return a color and nothing fancy
 pub trait Emmits {
     fn emitted(&self, ray: &Ray, hit_record: &HitRecord) -> Option<Color>;
 }
@@ -97,7 +124,7 @@ impl Emmits for Material {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct DiffuseLight {
-    // albedo is defined as amount of color not absorbed
+    // albedo is here the amount of light emitted (can be more than >1.)
     pub albedo: Color,
 }
 
@@ -110,6 +137,7 @@ impl DiffuseLight {
 
 impl Emmits for DiffuseLight {
     fn emitted(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<Color> {
+        //only return the color if we hit the front side of the emmitting element
         if hit_record.front_face {
             Some(self.albedo)
         } else {
@@ -138,7 +166,7 @@ impl Scatterable for Lambertian {
         &self,
         _ray: &Ray,
         hit_record: &HitRecord,
-        rng: &mut impl Rng,
+        _rng: &mut impl Rng,
     ) -> Option<ScatterRecord> {
         //lambertian pdf
 
@@ -189,7 +217,7 @@ impl Reflects for Metal {
         } else {
             // return no ray, as the ray is absorbed by the material (due to fuzz factor)
             let reflect_record = ReflectRecord {
-                attenuation: self.albedo,
+                attenuation: Color::new(0.0, 0.0, 0.0),
                 ray: None,
             };
 
@@ -205,7 +233,7 @@ fn reflect_vector(v: &Vec3, n: &Vec3) -> Vec3 {
 
 // refract a ray (for dielectric / glass materials)
 // source: raytracing in one weekend
-fn refract(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
+fn refract_ray(uv: &Vec3, n: &Vec3, etai_over_etat: f64) -> Vec3 {
     let minus_uv: Vec3 = *uv * -1.0;
     let cos_theta = n.dot(&minus_uv).min(1.0);
     let r_out_perp: Vec3 = (*uv + *n * cos_theta) * etai_over_etat;
@@ -225,6 +253,7 @@ fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
 pub struct Dielectric {
     pub index_of_refraction: f64,
     // there is no albedo defined, as a glass material does not absorb color
+    // albedo/atentuation is set to 1.0 1.0 1.0 in the code later
 }
 
 impl Dielectric {
@@ -236,15 +265,14 @@ impl Dielectric {
 }
 
 // source: Ray tracing in one Weekend
-impl Scatterable for Dielectric {
-    fn scatter(
+impl Refracts for Dielectric {
+    fn refract(
         &self,
         ray: &Ray,
         hit_record: &HitRecord,
         rng: &mut impl Rng,
-    ) -> Option<ScatterRecord> {
-        //let mut rng = rand::thread_rng();
-        /*
+    ) -> Option<RefractRecord> {
+        
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
         let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
         let unit_direction: Vec3 = ray.direction.normalized(); // this should already be normalized, so we could remove this .normalize
@@ -256,16 +284,24 @@ impl Scatterable for Dielectric {
         let cannot_refract: bool = refraction_ratio * sin_theta > 1.0;
 
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
-            let direction: Vec3 = reflect(&unit_direction, &hit_record.normal);
+            let direction: Vec3 = reflect_vector(&unit_direction, &hit_record.normal);
             let reflected_ray: Ray = Ray::new(hit_record.point, direction);
-            Some((Some(reflected_ray), Some(1.), albedo))
+            let refract_record: RefractRecord = RefractRecord {
+                attenuation: albedo,
+                ray: reflected_ray,
+            };
+            return Some(refract_record);
+
         } else {
-            let direction: Vec3 = refract(&unit_direction, &hit_record.normal, refraction_ratio);
+            let direction: Vec3 = refract_ray(&unit_direction, &hit_record.normal, refraction_ratio);
             let refracted_ray: Ray = Ray::new(hit_record.point, direction);
-            Some((Some(refracted_ray), Some(1.0), albedo))
+            let refract_record: RefractRecord = RefractRecord {
+                attenuation: albedo,
+                ray: refracted_ray
+            };
+            return Some(refract_record);
         }
-        */
-        None
+        
     }
 }
 

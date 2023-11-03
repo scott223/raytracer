@@ -32,20 +32,20 @@ use color::Color;
 use config::{Config, JSONScene};
 use elements::{Element, Hittable};
 use interval::Interval;
-use materials::{Emmits, Scatterable};
+use materials::{Emmits, Scatterable, Refracts};
 use ray::Ray;
 
 use crate::elements::JSONElement;
 
 use crate::materials::Reflects;
-use crate::pdf::{CosinePDF, PDFTrait, Pdf};
+use crate::pdf::{PDFTrait, Pdf};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
 // applies parallel rendering using Rayon
 pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<dyn Error>> {
     // create a new camera object
-    let camera: Camera = Camera::new(&config);
+    let camera: Camera = Camera::new(&config, &json_scene.camera);
 
     // we loop through the JSON Scene, and create a new actual object for each simplified JSON object
     // this allows us to pre-calculate various things like the bbox or commonly used numbers in the cconstructor
@@ -60,28 +60,15 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
         }
     }
 
-    let mut lights: Vec<Element> = Vec::new();
-
-    for json_element in json_scene.lights {
-        match json_element {
-            JSONElement::JSONQuad(q) => q.add_as_element(&mut lights),
-            JSONElement::JSONSphere(s) => s.add_as_element(&mut lights),
-            JSONElement::JSONTriangle(t) => t.add_as_element(&mut lights),
-            JSONElement::JSONBox(b) => b.add_as_element(&mut lights),
-        }
-
-        match json_element {
-            JSONElement::JSONQuad(q) => q.add_as_element(&mut objects),
-            JSONElement::JSONSphere(s) => s.add_as_element(&mut objects),
-            JSONElement::JSONTriangle(t) => t.add_as_element(&mut objects),
-            JSONElement::JSONBox(b) => b.add_as_element(&mut objects),
-        }
-    }
-
-    // the BHVNode creator will retuned a Box<Hittable>, either are BHVNode or a Element
+    // the BHVNode creator will return a Box<Hittable>, either are BHVNode (if there are more than 1 objects) or an Element
     log::info!("Creating the BHV node tree");
     let end = objects.len();
     let bhv_tree: Box<dyn Hittable + Sync> = BHVNode::new(&mut objects, 0, end);
+
+    // create a refrence to the elements that are marked as an attractor
+    let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
+
+    println!("attractors {:?}", attractors);
 
     // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
     let mut pixels =
@@ -97,8 +84,8 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
     let pb: ProgressBar = ProgressBar::new(config.img_height as u64);
 
     // use Rayon parallel iterator to iterate over the bands and render per line
-    bands.into_par_iter().for_each(|(i, band)| {
-        render_line(i as i64, band, &camera, &bhv_tree, &lights, &config);
+    bands.into_iter().for_each(|(i, band)| {
+        render_line(i as i64, band, &camera, &bhv_tree, &attractors, &config);
         pb.inc(1);
     });
 
@@ -115,7 +102,7 @@ pub fn render_line(
     band: &mut [Color],
     camera: &Camera,
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
-    lights: &Vec<Element>,
+    lights: &Vec<&Element>,
     config: &Config,
 ) {
     let mut rng: SmallRng = SmallRng::seed_from_u64(y as u64);
@@ -141,7 +128,7 @@ pub fn render_line(
         }
 
         if color.has_nan() {
-            log::error!("color has NaN");
+            //log::error!("color has NaN");
         }
 
         // set pixel color, but first divide by the number of samples to get the average and return
@@ -157,13 +144,14 @@ pub fn render_line(
 // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
 fn ray_color(
     bhv_tree: &Box<dyn elements::Hittable + Sync>,
-    lights: &Vec<Element>,
+    attractors: &Vec<&Element>,
     ray: &Ray,
     depth: usize,
     rng: &mut SmallRng,
     follow: bool,
 ) -> Color {
     if depth == 0 {
+        log::trace!("Ran out of depth");
         // we ran out of depth iterations, so we return black
         return Color::new(0.0, 0.0, 0.0);
     }
@@ -174,29 +162,29 @@ fn ray_color(
 
     match trace {
         Some(hit) => {
+            
             // we hit something
-
             if follow {
                 log::info!("follow pixel: we hit something");
             }
 
             // we hit a light, so we return the color from emmission and end here
-            if let Some(c) = hit.material.emitted(ray, &hit) {
+            if let Some(color_from_emission) = hit.material.emitted(ray, &hit) {
                 if follow {
-                    log::info!("emmitting, returning color c {:?}", c);
+                    log::info!("emmitting, returning color c {:?}", color_from_emission);
                 }
 
-                return c;
+                return color_from_emission;
             }
 
             // we see if we get a scatter from the material
             if let Some(scatter) = hit.material.scatter(ray, &hit, rng) {
                 //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
 
-                let light_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, lights[0]));
-                //let cosine_pdf: Pdf = Pdf::CosinePDF(CosinePDF::new(hit.normal));
+                // todo multiple attractors
+                let attractor_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, attractors));
                 let mixed_pdf: Pdf =
-                    Pdf::MixedPDF(MixedPDF::new(hit.point, &light_pdf, &scatter.pdf));
+                    Pdf::MixedPDF(MixedPDF::new(hit.point, &attractor_pdf, &scatter.pdf));
 
                 // generate the direction for the new scattered ray based on the PDF
                 let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
@@ -207,23 +195,26 @@ fn ray_color(
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                 let target_color: Color =
-                    ray_color(bhv_tree, lights, &scattered_ray, depth - 1, rng, follow);
+                    ray_color(bhv_tree, attractors, &scattered_ray, depth - 1, rng, follow);
 
                 // get the pdf for that spot on that material
                 let scattering_pdf: f64 = scatter.pdf.value(scattered_ray.direction);
 
                 // return the color, by applying the albedo to the color of the scattered ray (albedo is here defined the amount of color not absorbed)
                 // also apply the sample importance weighting
-                let color_from_scatter =
+                let mut color_from_scatter =
                     (scatter.attenuation * target_color * scattering_pdf) / pdf_val;
+
+                if color_from_scatter.has_nan() { color_from_scatter = Color::new(0., 0., 0.); }
 
                 // if we track this pixel, print out extra info
                 if follow {
                     log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
                 }
 
+                
                 if color_from_scatter.has_nan() {
-                    log::error!("color has Nan!");
+                    //log::error!("color has Nan!");
                 }
 
                 return color_from_scatter;
@@ -235,12 +226,22 @@ fn ray_color(
                 if let Some(reflected_ray) = reflect.ray {
                     // there is refleced ray, so lets follow that one
                     let target_color: Color =
-                    ray_color(bhv_tree, lights, &reflected_ray, depth - 1, rng, follow);
+                    ray_color(bhv_tree, attractors, &reflected_ray, depth - 1, rng, follow);
                     return reflect.attenuation * target_color;
                 } else {
-                    //no reflected ray, just return the attentuation
+                    //no reflected ray, just return the attentuation (this is now set to 0, 0, 0)
                     return reflect.attenuation;
                 }
+
+            }
+
+            // and finally refraction
+            if let Some(refract) = hit.material.refract(ray, &hit, rng) {
+
+                let target_color: Color =
+                    ray_color(bhv_tree, attractors, &refract.ray, depth - 1, rng, follow);
+                
+                return refract.attenuation * target_color;
 
             }
 
@@ -248,7 +249,7 @@ fn ray_color(
             Color::new(0.0, 0.0, 0.0)
         }
         None => {
-            // we did not hit anything, so we return the color of the sky but with a little gradient
+            // we did not hit anything, so we return black for now
             //let a = 0.5 * (ray.direction.y() + 1.0);
             //return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
             Color::new(0.0, 0.0, 0.0)
@@ -258,15 +259,17 @@ fn ray_color(
 
 #[cfg(test)]
 mod tests {
-    use crate::config::Config;
-    use crate::config::Scene;
+    //use crate::config::Config;
+    //use crate::config::Scene;
 
     use std::error::Error;
 
     #[test_log::test]
     fn test_render_full_scene() -> Result<(), Box<dyn Error>> {
-        let _config: Config = Config::default();
-        let _scene: Scene = Scene::default();
+        //TODO: test and default for config and scene
+        
+        //let _config: Config = Config::default();
+        //let _scene: Scene = Scene::default();
         //render(scene, config)?;
         Ok(())
     }

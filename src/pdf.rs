@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use rand::{rngs::SmallRng, Rng};
+use rand::{rngs::SmallRng, Rng, seq::SliceRandom};
 
 use crate::{
     elements::{Element, Hittable},
@@ -13,7 +13,7 @@ use crate::{
 pub enum Pdf<'a> {
     SpherePDF(SpherePDF),
     CosinePDF(CosinePDF),
-    HittablePDF(HittablePDF),
+    HittablePDF(HittablePDF<'a>),
     MixedPDF(MixedPDF<'a>),
 }
 
@@ -79,30 +79,37 @@ impl MixedPDF<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct HittablePDF {
+#[derive(Debug, Clone)]
+pub struct HittablePDF<'a> {
     pub value: f64,
     pub origin: Vec3,
-    pub object: Element,
+    pub objects: &'a Vec<&'a Element>,
 }
 
 // PDF for a hittable object
-impl PDFTrait for HittablePDF {
+impl PDFTrait for HittablePDF<'_> {
     fn value(&self, direction: Vec3) -> f64 {
-        self.object.pdf_value(self.origin, direction)
+        let weight: f64 = 1.0 / self.objects.len() as f64;
+        let mut sum: f64 = 0.0;
+        
+        for o in self.objects.iter() {
+            sum += weight * o.pdf_value(self.origin, direction);
+        }
+
+        return sum;
     }
 
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
-        self.object.random(self.origin, rng)
+        self.objects.choose(rng).expect("todo").random(self.origin, rng)
     }
 }
 
-impl HittablePDF {
-    pub fn new(origin: Vec3, object: Element) -> Self {
+impl HittablePDF<'_> {
+    pub fn new<'a>(origin: Vec3, objects: &'a Vec<&'a Element>) -> HittablePDF<'a> {
         HittablePDF {
             value: 0.,
             origin,
-            object,
+            objects,
         }
     }
 }

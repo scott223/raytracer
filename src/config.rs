@@ -1,4 +1,5 @@
-use crate::color::Color;
+use crate::camera::Camera;
+use crate::{color::Color, camera::JSONCamera};
 use crate::elements::*;
 use crate::interval::Interval;
 use crate::materials::*;
@@ -11,11 +12,6 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub img_width: f64,
     pub img_height: f64,
-    pub camera_center: Vec3,
-    pub camera_look_at: Vec3,
-    pub camera_fov_vertical: f64,
-    pub camera_defocus_angle: f64,
-    pub camera_focus_dist: f64,
     pub samples: usize,
     pub max_depth: usize,
     pub sky_color: Color,
@@ -36,11 +32,6 @@ impl Default for Config {
         Config {
             img_width: w,
             img_height: h,
-            camera_center: Vec3::new(0.0, 0.0, 0.0),
-            camera_look_at: Vec3::new(0.0, 0.0, -3.0),
-            camera_fov_vertical: fov,
-            camera_defocus_angle: 10.0,
-            camera_focus_dist: 3.0,
             samples: s,
             max_depth: m,
             sky_color,
@@ -50,15 +41,17 @@ impl Default for Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JSONScene {
+    pub camera: JSONCamera,
     pub elements: Vec<JSONElement>,
-    pub lights: Vec<JSONElement>,
 }
 
 #[derive(Debug)]
 pub struct Scene {
+    pub camera: Camera,
     pub elements: Vec<Element>,
 }
 
+/* 
 impl Default for Scene {
     fn default() -> Self {
         let lambertian_1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));
@@ -68,6 +61,7 @@ impl Default for Scene {
         let glass: Material = Material::Dielectric(Dielectric::new(1.5));
 
         Scene {
+            camera: Camera::defa,
             elements: vec![
                 Element::Sphere(Sphere::new(Vec3::new(0.0, -1.0, -25.0), 2.0, metal)),
                 Element::Sphere(Sphere::new(Vec3::new(-3.0, -1.25, -23.0), 1.5, glass)),
@@ -76,7 +70,7 @@ impl Default for Scene {
             ],
         }
     }
-}
+} */
 
 impl Scene {
     // fn trace_hits
