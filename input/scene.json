@@ -53,7 +53,7 @@
       "JSONSphere": {
         "center": {
           "x": 220.0,
-          "y": 70.0,
+          "y": 90.0,
           "z": 95.0
         },
         "radius": 90.0,
@@ -62,7 +62,7 @@
             "index_of_refraction": 1.5
           }
         },
-        "attractor": false
+        "attractor": true
       }
     },     
         {

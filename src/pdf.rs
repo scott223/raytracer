@@ -46,6 +46,7 @@ impl PDFTrait for Pdf<'_> {
 // need to specify lifetime so that references dont outlive the overal struct
 pub struct MixedPDF<'a> {
     pub origin: Vec3,
+    pub ratio: f64,
     pub p1: &'a Pdf<'a>,
     pub p2: &'a Pdf<'a>,
 }
@@ -54,13 +55,13 @@ pub struct MixedPDF<'a> {
 impl PDFTrait for MixedPDF<'_> {
     //combine the values from the two PDF's
     fn value(&self, direction: Vec3) -> f64 {
-        0.5 * self.p1.value(direction) + 0.5 * self.p2.value(direction)
+        self.ratio * self.p1.value(direction) + (1.-self.ratio) * self.p2.value(direction)
     }
 
     //pick a random ray from one of the PDFs
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
         let r = rng.gen_range(0.0..1.0);
-        if r < 0.5 {
+        if r < self.ratio {
             self.p1.generate(rng)
         } else {
             self.p2.generate(rng)
@@ -70,12 +71,18 @@ impl PDFTrait for MixedPDF<'_> {
 
 impl MixedPDF<'_> {
     // the lifetime of the mixed pdf p1 and p2 needs to be the same as the lifetime of the mixed pdf struct itself
-    pub fn new<'a>(origin: Vec3, p1: &'a Pdf, p2: &'a Pdf) -> MixedPDF<'a> {
+    pub fn new<'a>(origin: Vec3, mut ratio: f64, p1: &'a Pdf, p2: &'a Pdf) -> MixedPDF<'a> {
+        if !(0.0..=1.0).contains(&ratio) {
+            ratio = 0.5;
+        }
+
         MixedPDF {
             origin,
+            ratio,
             p1: p1,
             p2: p2,
         }
+        
     }
 }
 
@@ -88,6 +95,8 @@ pub struct HittablePDF<'a> {
 
 // PDF for a hittable object
 impl PDFTrait for HittablePDF<'_> {
+
+    // returns the PDF value as weighted sum of all the values of the objects referenced
     fn value(&self, direction: Vec3) -> f64 {
         let weight: f64 = 1.0 / self.objects.len() as f64;
         let mut sum: f64 = 0.0;
@@ -96,11 +105,12 @@ impl PDFTrait for HittablePDF<'_> {
             sum += weight * o.pdf_value(self.origin, direction);
         }
 
-        return sum;
+        sum
     }
 
+    // generates a point on one of the (randomly picked) objects in the PDF
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
-        self.objects.choose(rng).expect("todo").random(self.origin, rng)
+        self.objects.choose(rng).expect("No object returned with random point method").random(self.origin, rng)
     }
 }
 

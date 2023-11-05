@@ -127,10 +127,6 @@ pub fn render_line(
             color += ray_color(bhv_tree, lights, &ray, config.max_depth, &mut rng, follow);
         }
 
-        if color.has_nan() {
-            //log::error!("color has NaN");
-        }
-
         // set pixel color, but first divide by the number of samples to get the average and return
         *band_item = color
             .divide_by_samples(config.samples)
@@ -179,18 +175,17 @@ fn ray_color(
 
             // we see if we get a scatter from the material
             if let Some(scatter) = hit.material.scatter(ray, &hit, rng) {
-                //  scattered rays (we assume every object has scattered rays, although in some materials (like metal) its actually a reflected or refracted (glass) ray)
-
-                // todo multiple attractors
-                let attractor_pdf: Pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, attractors));
-                let mixed_pdf: Pdf =
-                    Pdf::MixedPDF(MixedPDF::new(hit.point, &attractor_pdf, &scatter.pdf));
-
                 // generate the direction for the new scattered ray based on the PDF
-                let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
-
-                // get the pdf value
-                let pdf_val = mixed_pdf.value(scattered_ray.direction);
+                // check if there are attractors, else just use the scatter pdf
+                let (scattered_ray, pdf_val) = if attractors.len() > 0 {
+                    let hittable_pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, attractors));
+                    let mixed_pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, 0.5, &hittable_pdf, &scatter.pdf));
+                    let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
+                    (scattered_ray, mixed_pdf.value(scattered_ray.direction))
+                } else {
+                    let scattered_ray = Ray::new(hit.point, scatter.pdf.generate(rng));
+                    (scattered_ray, scatter.pdf.value(scattered_ray.direction))
+                };
 
                 // there is a scattered ray, so lets get the color of that ray
                 // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
@@ -205,16 +200,12 @@ fn ray_color(
                 let mut color_from_scatter =
                     (scatter.attenuation * target_color * scattering_pdf) / pdf_val;
 
+                // there could be some NaNs as pdf_val = 0 is a div by zero. took the lazy route and just filtere them out
                 if color_from_scatter.has_nan() { color_from_scatter = Color::new(0., 0., 0.); }
 
                 // if we track this pixel, print out extra info
                 if follow {
                     log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
-                }
-
-                
-                if color_from_scatter.has_nan() {
-                    //log::error!("color has Nan!");
                 }
 
                 return color_from_scatter;
