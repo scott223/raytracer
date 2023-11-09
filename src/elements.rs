@@ -1,5 +1,8 @@
 use std::f64::consts::*;
+use std::fs::File;
+use std::io::{BufReader, Read};
 
+use crate::color::Color;
 use crate::interval::Interval;
 use crate::mat4::{Mat4, Vec4};
 use crate::onb::Onb;
@@ -11,6 +14,9 @@ use std::fmt::Debug;
 
 use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
+
+extern crate wavefront_obj;
+use wavefront_obj::obj;
 
 // hitrecord gets returned on a hit, containting the point on the ray, the point in the global coordinate system, the normal and the material for the hit
 #[derive(Debug)]
@@ -37,6 +43,7 @@ pub enum JSONElement {
     JSONQuad(JSONQuad),
     JSONTriangle(JSONTriangle),
     JSONBox(JSONBox),
+    JSONObj(JSONObj),
 }
 
 // enum for all the different elements
@@ -49,13 +56,12 @@ pub enum Element {
 
 //implement the methods for the Element
 impl Element {
-
     // returns true if marked as an attractor
     pub fn is_attractor(&self) -> bool {
         match *self {
             Element::Sphere(ref s) => s.is_attractor(),
             Element::Quad(ref q) => q.is_attractor(),
-            _ => false
+            _ => false,
         }
     }
 }
@@ -249,7 +255,13 @@ pub struct JSONQuad {
 
 impl JSONQuad {
     pub fn add_as_element(&self, objects: &mut Vec<Element>) {
-        let object = Element::Quad(Quad::new(self.q, self.u, self.v, self.material, self.attractor));
+        let object = Element::Quad(Quad::new(
+            self.q,
+            self.u,
+            self.v,
+            self.material,
+            self.attractor,
+        ));
         objects.push(object);
     }
 }
@@ -274,7 +286,13 @@ pub struct Quad {
 
 impl Quad {
     pub fn new_from_json_object(json_quad: JSONQuad) -> Self {
-        Quad::new(json_quad.q, json_quad.u, json_quad.v, json_quad.material, json_quad.attractor)
+        Quad::new(
+            json_quad.q,
+            json_quad.u,
+            json_quad.v,
+            json_quad.material,
+            json_quad.attractor,
+        )
     }
 
     // Creating a new Quad with lower left point Q and vectors u and v
@@ -549,7 +567,12 @@ impl JSONSphere {
             center = (tm * Vec4::new_from_vec3(center, 1.0)).to_vec3();
         }
 
-        let object = Element::Sphere(Sphere::new(center, self.radius, self.material, self.attractor));
+        let object = Element::Sphere(Sphere::new(
+            center,
+            self.radius,
+            self.material,
+            self.attractor,
+        ));
         objects.push(object);
     }
 }
@@ -568,7 +591,12 @@ pub struct Sphere {
 impl Sphere {
     // create a new sphere based on the JSON object
     pub fn new_from_json_object(json_sphere: JSONSphere) -> Self {
-        Sphere::new(json_sphere.center, json_sphere.radius, json_sphere.material, json_sphere.attractor)
+        Sphere::new(
+            json_sphere.center,
+            json_sphere.radius,
+            json_sphere.material,
+            json_sphere.attractor,
+        )
     }
 
     // create a new sphere
@@ -663,13 +691,12 @@ impl Hittable for Sphere {
 
         let ray = Ray::new(origin, direction);
         if let Some(_hit) = self.hit(&ray, &mut Interval::new(0.001, f64::INFINITY)) {
-            
-            let cos_theta_max = (1. - self.radius * self.radius / (self.center - origin).length_squared() ).sqrt();
+            let cos_theta_max =
+                (1. - self.radius * self.radius / (self.center - origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 
             //println!("did hit");
             1. / solid_angle
-        
         } else {
             //no hit, return 0 as pdf
             0.
@@ -681,21 +708,117 @@ impl Hittable for Sphere {
     fn random(&self, origin: Vec3, rng: &mut SmallRng) -> Vec3 {
         let direction: Vec3 = self.center - origin;
         let uvw: Onb = Onb::build_from_w(direction);
-        uvw.local_vec(random_to_sphere(self.radius, direction.length_squared(), rng))
+        uvw.local_vec(random_to_sphere(
+            self.radius,
+            direction.length_squared(),
+            rng,
+        ))
     }
-
 }
 
 pub fn random_to_sphere(radius: f64, distance_squared: f64, rng: &mut SmallRng) -> Vec3 {
     let r1: f64 = rng.gen_range(0.0..1.0);
     let r2: f64 = rng.gen_range(0.0..1.0);
-    let z: f64 = 1.0 + r2 * ((1.0 - radius*radius/distance_squared).sqrt() - 1.0);
+    let z: f64 = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
 
     let phi: f64 = 2.0 * PI * r1;
-    let x: f64 = phi.cos()*(1.0-z*z).sqrt();
-    let y: f64 = phi.sin()*(1.0-z*z).sqrt();
+    let x: f64 = phi.cos() * (1.0 - z * z).sqrt();
+    let y: f64 = phi.sin() * (1.0 - z * z).sqrt();
 
     return Vec3::new(x, y, z);
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct JSONObj {
+    pub filepath: String,
+    pub transpose: Option<Transpose>,
+    pub rotate: Option<Rotate>,
+    pub scale: Option<Scale>,
+    pub material: Material,
+}
+
+impl JSONObj {
+    pub fn add_as_element(&self, objects: &mut Vec<Element>) {
+        //todo ERROR
+        //let input = BufReader::new(File::open(self.filepath).unwrap());
+
+
+
+        let mut f = File::open(self.filepath.to_owned()).unwrap();
+        let mut s = String::new();
+        f.read_to_string(&mut s);
+
+        let result = obj::parse(s).unwrap();
+
+        print!("loaded .obj with {} objects", result.objects.len());
+
+        for object in result.objects {
+
+            let mut vertices: Vec<Vec3> =  Vec::new();
+            object.vertices.iter().for_each(|v| vertices.push(Vec3::new(v.x, v.y, v.z)));
+
+            //TODO move the scaling, rotation and transpose to a seperate functio
+            // apply the scaling as per the scaling transformation input from the JSON
+            if let Some(s) = self.scale {
+                let tm_scale = Mat4::scale(s.x, s.y, s.z);
+                vertices
+                    .iter_mut()
+                    .for_each(|v| *v = (tm_scale * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+            }
+
+            // apply the rotation as per the rotate transformation input from the JSON
+            if let Some(r) = self.rotate {
+                let tm_rotate_x = Mat4::rotate_x(r.theta_x);
+                let tm_rotate_y = Mat4::rotate_y(r.theta_y);
+                let tm_rotate_z = Mat4::rotate_z(r.theta_z);
+
+                // apply the rotations
+                vertices
+                    .iter_mut()
+                    .for_each(|v| *v = (tm_rotate_x * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+                vertices
+                    .iter_mut()
+                    .for_each(|v| *v = (tm_rotate_y * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+                vertices
+                    .iter_mut()
+                    .for_each(|v| *v = (tm_rotate_z * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+            }
+
+            if let Some(t) = self.transpose {
+                let tm = Mat4::transpose(t.x, t.y, t.z);
+                vertices
+                .iter_mut()
+                .for_each(|v| *v = (tm * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+            }
+
+            for geometry in object.geometry {
+                print!("loaded num shapes {}", geometry.shapes.len());
+                for shape in geometry.shapes {
+                    match shape.primitive {
+                        wavefront_obj::obj::Primitive::Triangle(a, b, c) => {
+                            let triangle = Element::Triangle(Triangle::new(
+                                Vec3::new(vertices[a.0].x(), vertices[a.0].y(), vertices[a.0].z()),
+                                Vec3::new(vertices[b.0].x(), vertices[b.0].y(), vertices[b.0].z()),
+                                Vec3::new(vertices[c.0].x(), vertices[c.0].y(), vertices[c.0].z()),
+                                self.material,
+                            ));
+
+                            objects.push(triangle);
+
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        //objects.push(Element::Triangle(Triangle::new(
+        // vertices[t[0]],
+        // vertices[t[1]],
+        //   vertices[t[2]],
+        //     self.material,
+        //   )));
+    }
 }
 
 #[cfg(test)]

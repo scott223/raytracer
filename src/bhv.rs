@@ -39,7 +39,6 @@ impl BHVNode {
 
                 Box::new(node)
             } else {
-                
                 let node: BHVNode = BHVNode {
                     left: Box::new(objects[start + 1]),
                     right: Box::new(objects[start]),

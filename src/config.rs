@@ -1,10 +1,10 @@
 use crate::camera::Camera;
-use crate::{color::Color, camera::JSONCamera};
 use crate::elements::*;
 use crate::interval::Interval;
 use crate::materials::*;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use crate::{camera::JSONCamera, color::Color};
 
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,6 @@ impl Default for Config {
         let r: f64 = 16.0 / 9.0; //aspect ratio
         let w: f64 = 1024.0; //image width
         let h: f64 = w / r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
-        let fov: f64 = 90.0;
 
         let s: usize = 1; //samples
         let m: usize = 32; //max depth
@@ -51,7 +50,7 @@ pub struct Scene {
     pub elements: Vec<Element>,
 }
 
-/* 
+/*
 impl Default for Scene {
     fn default() -> Self {
         let lambertian_1 = Material::Lambertian(Lambertian::new(Color::new(0.3, 0.3, 0.3)));

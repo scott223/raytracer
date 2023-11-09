@@ -1,8 +1,8 @@
+use crate::color::Color;
 use crate::elements::HitRecord;
 use crate::pdf::{CosinePDF, Pdf};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::color::Color;
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -200,8 +200,8 @@ impl Reflects for Metal {
         rng: &mut impl Rng,
     ) -> Option<ReflectRecord> {
         // get the direction of the reflected ray, and add a fuzz factor * a random unit vector
-        // todo check if fuzz is between 0.0..1.0 
-        
+        // todo check if fuzz is between 0.0..1.0
+
         let new_direction = reflect_vector(&ray.direction.normalized(), &hit_record.normal)
             + Vec3::new_random_unit_vector(rng) * self.fuzz;
 
@@ -272,9 +272,12 @@ impl Refracts for Dielectric {
         hit_record: &HitRecord,
         rng: &mut impl Rng,
     ) -> Option<RefractRecord> {
-        
         let albedo: Color = Color::new(1.0, 1.0, 1.0); // a glass material does not absorb any color/light so the albedo is 1.0
-        let refraction_ratio: f64 = if hit_record.front_face { 1.0 / self.index_of_refraction } else { self.index_of_refraction };
+        let refraction_ratio: f64 = if hit_record.front_face {
+            1.0 / self.index_of_refraction
+        } else {
+            self.index_of_refraction
+        };
         let unit_direction: Vec3 = ray.direction.normalized(); // this should already be normalized, so we could remove this .normalize
 
         let minus_unit_direction: Vec3 = unit_direction * -1.0;
@@ -291,17 +294,16 @@ impl Refracts for Dielectric {
                 ray: reflected_ray,
             };
             return Some(refract_record);
-
         } else {
-            let direction: Vec3 = refract_ray(&unit_direction, &hit_record.normal, refraction_ratio);
+            let direction: Vec3 =
+                refract_ray(&unit_direction, &hit_record.normal, refraction_ratio);
             let refracted_ray: Ray = Ray::new(hit_record.point, direction);
             let refract_record: RefractRecord = RefractRecord {
                 attenuation: albedo,
-                ray: refracted_ray
+                ray: refracted_ray,
             };
             return Some(refract_record);
         }
-        
     }
 }
 

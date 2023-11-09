@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use rand::{rngs::SmallRng, Rng, seq::SliceRandom};
+use rand::{rngs::SmallRng, seq::SliceRandom, Rng};
 
 use crate::{
     elements::{Element, Hittable},
@@ -55,7 +55,7 @@ pub struct MixedPDF<'a> {
 impl PDFTrait for MixedPDF<'_> {
     //combine the values from the two PDF's
     fn value(&self, direction: Vec3) -> f64 {
-        self.ratio * self.p1.value(direction) + (1.-self.ratio) * self.p2.value(direction)
+        self.ratio * self.p1.value(direction) + (1. - self.ratio) * self.p2.value(direction)
     }
 
     //pick a random ray from one of the PDFs
@@ -82,7 +82,6 @@ impl MixedPDF<'_> {
             p1: p1,
             p2: p2,
         }
-        
     }
 }
 
@@ -95,12 +94,11 @@ pub struct HittablePDF<'a> {
 
 // PDF for a hittable object
 impl PDFTrait for HittablePDF<'_> {
-
     // returns the PDF value as weighted sum of all the values of the objects referenced
     fn value(&self, direction: Vec3) -> f64 {
         let weight: f64 = 1.0 / self.objects.len() as f64;
         let mut sum: f64 = 0.0;
-        
+
         for o in self.objects.iter() {
             sum += weight * o.pdf_value(self.origin, direction);
         }
@@ -110,7 +108,10 @@ impl PDFTrait for HittablePDF<'_> {
 
     // generates a point on one of the (randomly picked) objects in the PDF
     fn generate(&self, rng: &mut SmallRng) -> Vec3 {
-        self.objects.choose(rng).expect("No object returned with random point method").random(self.origin, rng)
+        self.objects
+            .choose(rng)
+            .expect("No object returned with random point method")
+            .random(self.origin, rng)
     }
 }
 

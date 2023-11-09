@@ -15,7 +15,7 @@ pub mod config;
 
 mod aabb;
 mod bhv;
-mod camera;
+pub mod camera;
 pub mod color;
 pub mod elements;
 pub mod interval;
@@ -32,7 +32,7 @@ use color::Color;
 use config::{Config, JSONScene};
 use elements::{Element, Hittable};
 use interval::Interval;
-use materials::{Emmits, Scatterable, Refracts};
+use materials::{Emmits, Refracts, Scatterable};
 use ray::Ray;
 
 use crate::elements::JSONElement;
@@ -57,6 +57,7 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
             JSONElement::JSONSphere(s) => s.add_as_element(&mut objects),
             JSONElement::JSONTriangle(t) => t.add_as_element(&mut objects),
             JSONElement::JSONBox(b) => b.add_as_element(&mut objects),
+            JSONElement::JSONObj(o) => o.add_as_element(&mut objects),
         }
     }
 
@@ -64,11 +65,10 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
     log::info!("Creating the BHV node tree");
     let end = objects.len();
     let bhv_tree: Box<dyn Hittable + Sync> = BHVNode::new(&mut objects, 0, end);
+    log::info!("BHV tree generated, has {} objects linked", objects.len());
 
     // create a refrence to the elements that are marked as an attractor
     let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
-
-    println!("attractors {:?}", attractors);
 
     // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
     let mut pixels =
@@ -112,13 +112,14 @@ pub fn render_line(
         let mut color: Color = Color::new(0.0, 0.0, 0.0);
 
         // sets a pixel to follow and print detailed logs
-        let follow_coords: [usize; 2] = [75, 200];
+        let _follow_coords: [usize; 2] = [75, 200];
 
         // loop through all the anti aliasing samples
         for i in 0..config.samples {
             // get multiple rays for anti alliasing, and add the colors
             let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-            let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+            //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+            let follow = false;
 
             if follow {
                 log::info!("sample: {}", i);
@@ -158,7 +159,6 @@ fn ray_color(
 
     match trace {
         Some(hit) => {
-            
             // we hit something
             if follow {
                 log::info!("follow pixel: we hit something");
@@ -179,7 +179,8 @@ fn ray_color(
                 // check if there are attractors, else just use the scatter pdf
                 let (scattered_ray, pdf_val) = if attractors.len() > 0 {
                     let hittable_pdf = Pdf::HittablePDF(HittablePDF::new(hit.point, attractors));
-                    let mixed_pdf = Pdf::MixedPDF(MixedPDF::new(hit.point, 0.5, &hittable_pdf, &scatter.pdf));
+                    let mixed_pdf =
+                        Pdf::MixedPDF(MixedPDF::new(hit.point, 0.5, &hittable_pdf, &scatter.pdf));
                     let scattered_ray = Ray::new(hit.point, mixed_pdf.generate(rng));
                     (scattered_ray, mixed_pdf.value(scattered_ray.direction))
                 } else {
@@ -201,7 +202,9 @@ fn ray_color(
                     (scatter.attenuation * target_color * scattering_pdf) / pdf_val;
 
                 // there could be some NaNs as pdf_val = 0 is a div by zero. took the lazy route and just filtere them out
-                if color_from_scatter.has_nan() { color_from_scatter = Color::new(0., 0., 0.); }
+                if color_from_scatter.has_nan() {
+                    color_from_scatter = Color::new(0., 0., 0.);
+                }
 
                 // if we track this pixel, print out extra info
                 if follow {
@@ -213,27 +216,23 @@ fn ray_color(
 
             // did we get a reflection?
             if let Some(reflect) = hit.material.reflect(ray, &hit, rng) {
-
                 if let Some(reflected_ray) = reflect.ray {
                     // there is refleced ray, so lets follow that one
                     let target_color: Color =
-                    ray_color(bhv_tree, attractors, &reflected_ray, depth - 1, rng, follow);
+                        ray_color(bhv_tree, attractors, &reflected_ray, depth - 1, rng, follow);
                     return reflect.attenuation * target_color;
                 } else {
                     //no reflected ray, just return the attentuation (this is now set to 0, 0, 0)
                     return reflect.attenuation;
                 }
-
             }
 
             // and finally refraction
             if let Some(refract) = hit.material.refract(ray, &hit, rng) {
-
                 let target_color: Color =
                     ray_color(bhv_tree, attractors, &refract.ray, depth - 1, rng, follow);
-                
-                return refract.attenuation * target_color;
 
+                return refract.attenuation * target_color;
             }
 
             // no emmission, nor scatter. just return black
@@ -258,7 +257,7 @@ mod tests {
     #[test_log::test]
     fn test_render_full_scene() -> Result<(), Box<dyn Error>> {
         //TODO: test and default for config and scene
-        
+
         //let _config: Config = Config::default();
         //let _scene: Scene = Scene::default();
         //render(scene, config)?;
