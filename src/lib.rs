@@ -1,19 +1,24 @@
-use pdf::{HittablePDF, MixedPDF};
-// Rust imports
+use std::error::Error;
+use std::time::Instant;
+
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
 use indicatif::ProgressBar;
-
 use rayon::prelude::*;
-use std::error::Error;
 
-use std::time::Instant;
+use crate::pdf::{PDFTrait, Pdf, HittablePDF, MixedPDF};
+use crate::bhv::BHVNode;
+use crate::camera::Camera;
+use crate::color::Color;
+use crate::config::{Config, JSONScene};
+use crate::elements::{JSONElement, Element, Hittable};
+use crate::interval::Interval;
+use crate::materials::{Reflects, Emmits, Refracts, Scatterable};
+use crate::ray::Ray;
 
-// Raytracer imports
 pub mod config;
-
-mod aabb;
+pub mod aabb;
 mod bhv;
 pub mod camera;
 pub mod color;
@@ -25,20 +30,6 @@ mod onb;
 mod pdf;
 pub mod ray;
 pub mod vec3;
-
-use bhv::BHVNode;
-use camera::Camera;
-use color::Color;
-use config::{Config, JSONScene};
-use elements::{Element, Hittable};
-use interval::Interval;
-use materials::{Emmits, Refracts, Scatterable};
-use ray::Ray;
-
-use crate::elements::JSONElement;
-
-use crate::materials::Reflects;
-use crate::pdf::{PDFTrait, Pdf};
 
 // fn render
 // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
@@ -62,10 +53,10 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
     }
 
     // the BHVNode creator will return a Box<Hittable>, either are BHVNode (if there are more than 1 objects) or an Element
-    log::info!("Creating the BHV node tree");
+    log::info!("Creating the BHV node tree, with {} objects", objects.len());
     let end = objects.len();
     let bhv_tree: Box<dyn Hittable + Sync> = BHVNode::new(&mut objects, 0, end);
-    log::info!("BHV tree generated, has {} objects linked", objects.len());
+    log::info!("BHV tree generated");
 
     // create a refrence to the elements that are marked as an attractor
     let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
@@ -79,7 +70,7 @@ pub fn render(json_scene: JSONScene, config: Config) -> Result<Vec<Color>, Box<d
         .collect();
 
     // start the actual render
-    log::info!("Starting render!");
+    log::info!("Starting render");
     let start: Instant = Instant::now();
     let pb: ProgressBar = ProgressBar::new(config.img_height as u64);
 
@@ -155,7 +146,6 @@ fn ray_color(
 
     // we trace the ray to see what it will hit. uses the BHV_tree to figure our what the first hit is
     let trace = bhv_tree.hit(ray, &mut Interval::new(0.001, f64::MAX));
-    //let trace = scene.trace(&ray);
 
     match trace {
         Some(hit) => {
@@ -240,8 +230,6 @@ fn ray_color(
         }
         None => {
             // we did not hit anything, so we return black for now
-            //let a = 0.5 * (ray.direction.y() + 1.0);
-            //return Color::new(0.9, 0.9, 1.0) * (1.0 - a) + config.sky_color * a;
             Color::new(0.0, 0.0, 0.0)
         }
     }

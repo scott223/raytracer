@@ -1,7 +1,8 @@
 use crate::interval::Interval;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::mem;
+use std::fmt;
+use std::ops::Index;
 
 // axis aligned bounding box
 
@@ -10,6 +11,8 @@ pub struct Aabb {
     x: Interval,
     y: Interval,
     z: Interval,
+    min: Vec3,
+    max: Vec3,
 }
 
 impl Default for Aabb {
@@ -27,28 +30,48 @@ impl Default for Aabb {
                 interval_min: 0.0,
                 interval_max: 0.0,
             },
+            min: Vec3::new(0.0, 0.0, 0.0),
+            max: Vec3::new(0.0, 0.0, 0.0),
         }
     }
 }
 
 impl Aabb {
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
-        Aabb { x, y, z }
+        Aabb {
+            x,
+            y,
+            z,
+            min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
+            max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
+        }
     }
 
     pub fn new_from_points(p: Vec3, q: Vec3) -> Self {
+        let x: Interval = Interval::new(q.x().min(p.x()), q.x().max(p.x()));
+        let y: Interval = Interval::new(q.y().min(p.y()), q.y().max(p.y()));
+        let z: Interval = Interval::new(q.z().min(p.z()), q.z().max(p.z()));
+
         Aabb {
-            x: Interval::new(q.x().min(p.x()), q.x().max(p.x())),
-            y: Interval::new(q.y().min(p.y()), q.y().max(p.y())),
-            z: Interval::new(q.z().min(p.z()), q.z().max(p.z())),
+            x,
+            y,
+            z,
+            min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
+            max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
         }
     }
 
     pub fn new_from_aabbs(a: Aabb, b: Aabb) -> Self {
+        let x: Interval = Interval::new_from_intervals(a.x, b.x);
+        let y: Interval = Interval::new_from_intervals(a.y, b.y);
+        let z: Interval = Interval::new_from_intervals(a.z, b.z);
+
         Aabb {
-            x: Interval::new_from_intervals(a.x, b.x),
-            y: Interval::new_from_intervals(a.y, b.y),
-            z: Interval::new_from_intervals(a.z, b.z),
+            x,
+            y,
+            z,
+            min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
+            max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
         }
     }
 
@@ -76,6 +99,8 @@ impl Aabb {
             x: new_x,
             y: new_y,
             z: new_z,
+            min: Vec3::new(new_x.interval_min, new_y.interval_min, new_z.interval_min),
+            max: Vec3::new(new_x.interval_max, new_y.interval_max, new_z.interval_max),
         }
     }
 
@@ -89,35 +114,48 @@ impl Aabb {
     }
 
     // checks if we have a hit with the aabb, in a given interval
-    pub fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> bool {
-        for a in 0..3_usize {
-            let mut t0: f64 =
-                (self.axis(a).interval_min - ray.origin.axis(a)) * ray.inv_dir.axis(a);
-            let mut t1: f64 =
-                (self.axis(a).interval_max - ray.origin.axis(a)) * ray.inv_dir.axis(a);
+    pub fn hit(&self, ray: &Ray, _ray_t: &mut Interval) -> bool {
+        let mut ray_min = (self[ray.sign_x].x() - ray.origin.x()) * ray.inv_direction.x();
+        let mut ray_max = (self[1 - ray.sign_x].x() - ray.origin.x()) * ray.inv_direction.x();
 
-            // we need to swap t0 and t1
-            if ray.inv_dir.axis(a) < 0.0 {
-                mem::swap(&mut t0, &mut t1);
-            }
+        let y_min = (self[ray.sign_y].y() - ray.origin.y()) * ray.inv_direction.y();
+        let y_max = (self[1 - ray.sign_y].y() - ray.origin.y()) * ray.inv_direction.y();
 
-            let mut check_int: Interval = ray_t.clone();
+        ray_min = ray_min.max(y_min);
+        ray_max = ray_max.min(y_max);
 
-            if t0 > check_int.interval_min {
-                check_int.interval_min = t0
-            };
-            if t1 < check_int.interval_max {
-                check_int.interval_max = t1
-            };
+        let z_min = (self[ray.sign_z].z() - ray.origin.z()) * ray.inv_direction.z();
+        let z_max = (self[1 - ray.sign_z].z() - ray.origin.z()) * ray.inv_direction.z();
 
-            // no hit wit the aabb
-            if check_int.interval_max <= check_int.interval_min {
-                return false;
-            }
+        ray_min = ray_min.max(z_min);
+        ray_max = ray_max.min(z_max);
+
+        ray_min.max(0.0) <= ray_max
+    }
+}
+
+/// Display trait for Aabb
+impl fmt::Display for Aabb {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Min bound: {}; Max bound: {}", self.min, self.max)
+    }
+}
+
+/// Make [`AABB`]s indexable. `aabb[0]` gives a reference to the minimum bound.
+/// All other indices return a reference to the maximum bound.
+///
+///
+///
+
+impl Index<usize> for Aabb {
+    type Output = Vec3;
+
+    fn index(&self, index: usize) -> &Vec3 {
+        if index == 0 {
+            &self.min
+        } else {
+            &self.max
         }
-
-        // we have a hit with the aabb, so return true
-        true
     }
 }
 

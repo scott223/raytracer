@@ -5,7 +5,19 @@ use std::fmt;
 pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
-    pub inv_dir: Vec3,
+    pub inv_direction: Vec3,
+
+    /// Sign of the X direction. 0 means positive, 1 means negative.
+    /// Cached for use in [`AABB`] intersections.
+    pub sign_x: usize,
+
+    /// Sign of the Y direction. 0 means positive, 1 means negative.
+    /// Cached for use in [`AABB`] intersections.
+    pub sign_y: usize,
+
+    /// Sign of the Z direction. 0 means positive, 1 means negative.
+    /// Cached for use in [`AABB`] intersections.
+    pub sign_z: usize,
 }
 
 // Creating a new Ray with a origin and a direction (normalized)
@@ -13,13 +25,15 @@ impl Ray {
     pub fn new(origin: Vec3, direction: Vec3) -> Self {
         let dir_norm = direction.normalized();
 
-        let inverted_direction =
-            Vec3::new(1.0 / dir_norm.x(), 1.0 / dir_norm.y(), 1.0 / dir_norm.z());
+        let inv_direction = Vec3::new(1.0 / dir_norm.x(), 1.0 / dir_norm.y(), 1.0 / dir_norm.z());
 
         Ray {
             origin,
-            direction: direction.normalized(),
-            inv_dir: inverted_direction,
+            direction: dir_norm,
+            inv_direction,
+            sign_x: (dir_norm.x() < 0.0) as usize,
+            sign_y: (dir_norm.y() < 0.0) as usize,
+            sign_z: (dir_norm.z() < 0.0) as usize,
         }
     }
 

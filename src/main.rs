@@ -7,8 +7,9 @@ use std::path::Path;
 // load the JSON files for the Scene and for the Configuration, and calls the main raytracer function render from lib.rsß
 fn main() {
     env_logger::init();
+    
     log::info!(
-        "Program started: loading scene and config from JSON files located in /input. Base directory is {:?}",
+        "Program started: loading scene and config from JSON files located in /input and render will be located in /render. Base directory is {:?}",
         env::current_dir().unwrap()
     );
 

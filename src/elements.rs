@@ -1,22 +1,22 @@
-use std::f64::consts::*;
+use std::f64::consts::PI;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
+use std::fmt::Debug;
 
-use crate::color::Color;
+use rand::Rng;
+use rand::rngs::SmallRng;
+
+use serde::{Deserialize, Serialize};
+
+extern crate wavefront_obj;
+use wavefront_obj::obj;
+
 use crate::interval::Interval;
 use crate::mat4::{Mat4, Vec4};
 use crate::onb::Onb;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::{aabb::Aabb, materials::*};
-use rand::Rng;
-use std::fmt::Debug;
-
-use rand::rngs::SmallRng;
-use serde::{Deserialize, Serialize};
-
-extern crate wavefront_obj;
-use wavefront_obj::obj;
 
 // hitrecord gets returned on a hit, containting the point on the ray, the point in the global coordinate system, the normal and the material for the hit
 #[derive(Debug)]
@@ -742,20 +742,20 @@ impl JSONObj {
         //todo ERROR
         //let input = BufReader::new(File::open(self.filepath).unwrap());
 
-
-
         let mut f = File::open(self.filepath.to_owned()).unwrap();
         let mut s = String::new();
-        f.read_to_string(&mut s);
+        let _ = f.read_to_string(&mut s);
 
         let result = obj::parse(s).unwrap();
 
-        print!("loaded .obj with {} objects", result.objects.len());
+        log::trace!("loaded .obj with {} objects", result.objects.len());
 
         for object in result.objects {
-
-            let mut vertices: Vec<Vec3> =  Vec::new();
-            object.vertices.iter().for_each(|v| vertices.push(Vec3::new(v.x, v.y, v.z)));
+            let mut vertices: Vec<Vec3> = Vec::new();
+            object
+                .vertices
+                .iter()
+                .for_each(|v| vertices.push(Vec3::new(v.x, v.y, v.z)));
 
             //TODO move the scaling, rotation and transpose to a seperate functio
             // apply the scaling as per the scaling transformation input from the JSON
@@ -787,12 +787,12 @@ impl JSONObj {
             if let Some(t) = self.transpose {
                 let tm = Mat4::transpose(t.x, t.y, t.z);
                 vertices
-                .iter_mut()
-                .for_each(|v| *v = (tm * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
+                    .iter_mut()
+                    .for_each(|v| *v = (tm * Vec4::new_from_vec3(*v, 1.0)).to_vec3());
             }
 
             for geometry in object.geometry {
-                print!("loaded num shapes {}", geometry.shapes.len());
+                log::trace!("Loaded {} shapes", geometry.shapes.len());
                 for shape in geometry.shapes {
                     match shape.primitive {
                         wavefront_obj::obj::Primitive::Triangle(a, b, c) => {
@@ -804,7 +804,6 @@ impl JSONObj {
                             ));
 
                             objects.push(triangle);
-
                         }
                         _ => {}
                     }
@@ -871,7 +870,7 @@ mod tests {
     #[test_log::test]
     fn test_create_sphere() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let s: Sphere = Sphere::new(Vec3::new(1.0, 2.0, -1.0), 2.0, m1);
+        let s: Sphere = Sphere::new(Vec3::new(1.0, 2.0, -1.0), 2.0, m1, Some(false));
         assert_approx_eq!(s.center, Vec3::new(1.0, 2.0, -1.0));
         assert_approx_eq!(s.radius, 2.0);
     }
@@ -879,7 +878,7 @@ mod tests {
     #[test_log::test]
     fn test_sphere_aabb() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
-        let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, 0.0), 1.0, m1);
+        let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, 0.0), 1.0, m1, Some(false));
 
         assert_approx_eq!(s.bounding_box().axis(0).interval_min, -1.0);
         assert_approx_eq!(s.bounding_box().axis(0).interval_max, 1.0);
@@ -890,7 +889,7 @@ mod tests {
         assert_approx_eq!(s.bounding_box().axis(2).interval_min, -1.0);
         assert_approx_eq!(s.bounding_box().axis(2).interval_max, 1.0);
 
-        let s2: Sphere = Sphere::new(Vec3::new(2.0, 1.0, -1.0), 1.0, m1);
+        let s2: Sphere = Sphere::new(Vec3::new(2.0, 1.0, -1.0), 1.0, m1, Some(false));
 
         assert_approx_eq!(s2.bounding_box().axis(0).interval_min, 1.0);
         assert_approx_eq!(s2.bounding_box().axis(0).interval_max, 3.0);
@@ -906,7 +905,7 @@ mod tests {
     fn test_hit_sphere() {
         let m1: Material = Material::Lambertian(Lambertian::new(Color::new(1.0, 1.0, 1.0)));
         let r: Ray = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0));
-        let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, -3.0), 1.0, m1);
+        let s: Sphere = Sphere::new(Vec3::new(0.0, 0.0, -3.0), 1.0, m1, Some(false));
 
         match s.hit(&r, &mut Interval::new(0.0, f64::MAX)) {
             Some(hit) => {
