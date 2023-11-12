@@ -3,11 +3,13 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
+use raytracer::render::integrator::RenderIntegrator;
+
 // App main function
 // load the JSON files for the Scene and for the Configuration, and calls the main raytracer function render from lib.rsß
 fn main() {
     env_logger::init();
-    
+
     log::info!(
         "Program started: loading scene and config from JSON files located in /input and render will be located in /render. Base directory is {:?}",
         env::current_dir().unwrap()
@@ -31,7 +33,9 @@ fn main() {
     let config: raytracer::config::Config =
         serde_json::from_reader(config_reader).expect("Error parsing input/config.json, quitting");
 
-    match raytracer::render(scene, config) {
+    let r: RenderIntegrator = RenderIntegrator::new(scene, config);
+
+    match r.render() {
         Ok(i) => {
             //i.save("renders/render.png").unwrap();
 

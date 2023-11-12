@@ -1,6 +1,8 @@
+use crate::elements::Hittable;
 use crate::interval::Interval;
-use crate::ray::Ray;
-use crate::vec3::Vec3;
+use crate::render::Ray;
+use crate::linalg::Vec3;
+
 use std::fmt;
 use std::ops::Index;
 
@@ -114,6 +116,8 @@ impl Aabb {
     }
 
     // checks if we have a hit with the aabb, in a given interval
+    // source: https://docs.rs/bvh/latest/src/bvh/ray.rs.html#168-188
+
     pub fn hit(&self, ray: &Ray, _ray_t: &mut Interval) -> bool {
         let mut ray_min = (self[ray.sign_x].x() - ray.origin.x()) * ray.inv_direction.x();
         let mut ray_max = (self[1 - ray.sign_x].x() - ray.origin.x()) * ray.inv_direction.x();
@@ -131,6 +135,11 @@ impl Aabb {
         ray_max = ray_max.min(z_max);
 
         ray_min.max(0.0) <= ray_max
+    }
+    pub fn grow<T: Hittable>(mut self, b: T) {
+        self.x = Interval::new_from_intervals(self.x, b.bounding_box().x);
+        self.y = Interval::new_from_intervals(self.y, b.bounding_box().y);
+        self.z = Interval::new_from_intervals(self.z, b.bounding_box().z);
     }
 }
 
@@ -161,10 +170,10 @@ impl Index<usize> for Aabb {
 
 #[cfg(test)]
 mod tests {
-    use crate::aabb::Aabb;
+    use crate::bvh::aabb::Aabb;
     use crate::interval::Interval;
-    use crate::ray::Ray;
-    use crate::vec3::Vec3;
+    use crate::render::Ray;
+    use crate::linalg::Vec3;
     use assert_approx_eq::assert_approx_eq;
 
     // Test creating a new aabb, taking intervals as an argument

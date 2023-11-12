@@ -1,22 +1,20 @@
 use std::f64::consts::PI;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
-use std::fmt::Debug;
 
-use rand::Rng;
 use rand::rngs::SmallRng;
+use rand::Rng;
 
 use serde::{Deserialize, Serialize};
 
 extern crate wavefront_obj;
 use wavefront_obj::obj;
 
+use crate::linalg::{Vec3, Onb, mat4::{Mat4, Vec4}};
+use crate::{bvh::Aabb, materials::*};
+use crate::render::Ray;
 use crate::interval::Interval;
-use crate::mat4::{Mat4, Vec4};
-use crate::onb::Onb;
-use crate::ray::Ray;
-use crate::vec3::Vec3;
-use crate::{aabb::Aabb, materials::*};
 
 // hitrecord gets returned on a hit, containting the point on the ray, the point in the global coordinate system, the normal and the material for the hit
 #[derive(Debug)]
@@ -824,8 +822,8 @@ impl JSONObj {
 mod tests {
     use crate::color::Color;
     use crate::elements::*;
-    use crate::ray::Ray;
-    use crate::vec3::Vec3;
+    use crate::render::Ray;
+    use crate::linalg::Vec3;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]

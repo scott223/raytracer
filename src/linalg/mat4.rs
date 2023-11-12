@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Div, Mul, MulAssign};
 
-use crate::vec3::Vec3;
+use super::vec3::Vec3;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Vec4 {
@@ -458,9 +458,7 @@ impl Div<f64> for Mat4 {
 
 #[cfg(test)]
 mod tests {
-    use crate::mat4::Mat4;
-    use crate::mat4::Vec4;
-    use crate::vec3::Vec3;
+    use crate::linalg::{vec3::Vec3, mat4::{Mat4, Vec4}};
     use assert_approx_eq::assert_approx_eq;
 
     // Test creating a new vector with three rows, taking floats as an argument

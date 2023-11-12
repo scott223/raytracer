@@ -278,7 +278,7 @@ impl PartialEq for Vec3 {
 
 #[cfg(test)]
 mod tests {
-    use crate::vec3::Vec3;
+    use crate::linalg::vec3::Vec3;
     use assert_approx_eq::assert_approx_eq;
     use rand::rngs::StdRng;
     use rand::SeedableRng;

@@ -1,4 +1,4 @@
-use crate::vec3::Vec3;
+use crate::linalg::Vec3;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
@@ -56,8 +56,8 @@ impl fmt::Display for Ray {
 
 #[cfg(test)]
 mod tests {
-    use crate::ray::Ray;
-    use crate::vec3::Vec3;
+    use crate::render::ray::Ray;
+    use crate::linalg::Vec3;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]

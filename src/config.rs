@@ -1,8 +1,8 @@
-use crate::camera::Camera;
+use crate::render::camera::Camera;
 use crate::elements::*;
 use crate::interval::Interval;
-use crate::ray::Ray;
-use crate::{camera::JSONCamera, color::Color};
+use crate::render::Ray;
+use crate::{render::camera::JSONCamera, color::Color};
 
 use serde::{Deserialize, Serialize};
 

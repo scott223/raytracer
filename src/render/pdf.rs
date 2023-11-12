@@ -4,8 +4,8 @@ use rand::{rngs::SmallRng, seq::SliceRandom, Rng};
 
 use crate::{
     elements::{Element, Hittable},
-    onb::Onb,
-    vec3::Vec3,
+    linalg::Onb,
+    linalg::Vec3,
 };
 
 // struct for Probability Density Functions

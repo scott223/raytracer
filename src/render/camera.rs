@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{config::Config, ray::Ray, vec3::Vec3};
+use crate::{config::Config, render::ray::Ray, linalg::Vec3};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JSONCamera {

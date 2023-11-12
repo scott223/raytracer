@@ -1,4 +1,4 @@
-use crate::vec3::Vec3;
+use super::vec3::Vec3;
 
 // struct for Orthonormal Bases
 #[derive(Debug, Clone, Copy)]

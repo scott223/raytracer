@@ -1,23 +1,24 @@
 use std::fmt::Debug;
 
-use crate::aabb::Aabb;
+use super::aabb::Aabb;
+
 use crate::elements::*;
 use crate::interval::Interval;
-use crate::ray::Ray;
-use crate::vec3::Vec3;
+use crate::render::Ray;
+use crate::linalg::Vec3;
 
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
 // this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
 // it will only have a left or a right object
-pub struct BHVNode {
+pub struct BVHNode {
     left: Box<dyn Hittable + Sync>,
     right: Box<dyn Hittable + Sync>,
     bbox: Aabb, // this gets calculated and set when constructing the tree, so we can use this to speed up the hit calculations
 }
 
-impl BHVNode {
+impl BVHNode {
     pub fn new(objects: &mut Vec<Element>, start: usize, end: usize) -> Box<dyn Hittable + Sync> {
         // see how many elements we still have left
         let object_span: usize = end - start;
@@ -27,8 +28,8 @@ impl BHVNode {
             Box::new(objects[start])
         } else if object_span == 2 {
             // we have two items, lets see which one comes first and asign in the right order to the end node
-            if BHVNode::box_compare(&objects[start], &objects[start + 1]) {
-                let node: BHVNode = BHVNode {
+            if BVHNode::box_compare(&objects[start], &objects[start + 1]) {
+                let node: BVHNode = BVHNode {
                     left: Box::new(objects[start]),
                     right: Box::new(objects[start + 1]),
                     bbox: Aabb::new_from_aabbs(
@@ -39,7 +40,7 @@ impl BHVNode {
 
                 Box::new(node)
             } else {
-                let node: BHVNode = BHVNode {
+                let node: BVHNode = BVHNode {
                     left: Box::new(objects[start + 1]),
                     right: Box::new(objects[start]),
                     bbox: Aabb::new_from_aabbs(
@@ -68,14 +69,14 @@ impl BHVNode {
             let mid: usize = start + object_span / 2;
 
             // we create two sub nodes, that get the same object list, but a will look a at a smaller subsection
-            let left = BHVNode::new(objects, start, mid);
-            let right = BHVNode::new(objects, mid, end);
+            let left = BVHNode::new(objects, start, mid);
+            let right = BVHNode::new(objects, mid, end);
 
             // get the bounding box
             let bbox = Aabb::new_from_aabbs(left.bounding_box(), right.bounding_box());
 
             // create the node
-            let node: BHVNode = BHVNode { left, right, bbox };
+            let node: BVHNode = BVHNode { left, right, bbox };
 
             Box::new(node)
         }
@@ -87,7 +88,7 @@ impl BHVNode {
     }
 }
 
-impl Debug for BHVNode {
+impl Debug for BVHNode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
@@ -105,7 +106,7 @@ impl Debug for dyn Hittable + Sync {
     }
 }
 
-impl Hittable for BHVNode {
+impl Hittable for BVHNode {
     // recursive check for hits through the BHV nodes
     fn hit(&self, ray: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         // check if we hit the bounding box of this node, because if we dont, we can stop right here
