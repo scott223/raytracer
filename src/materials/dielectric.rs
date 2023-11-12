@@ -1,9 +1,9 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{color::Color, render::Ray, elements::HitRecord, linalg::Vec3};
+use crate::{color::Color, elements::HitRecord, linalg::Vec3, render::Ray};
 
-use super::{Refracts, RefractRecord};
+use super::{RefractRecord, Refracts};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Dielectric {
@@ -42,7 +42,9 @@ impl Refracts for Dielectric {
 
         let cannot_refract: bool = refraction_ratio * sin_theta > 1.0;
 
-        if cannot_refract || super::metal::reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
+        if cannot_refract
+            || super::metal::reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>()
+        {
             let direction: Vec3 = super::metal::reflect_vector(&unit_direction, &hit_record.normal);
             let reflected_ray: Ray = Ray::new(hit_record.point, direction);
             let refract_record: RefractRecord = RefractRecord {

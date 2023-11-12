@@ -1,8 +1,8 @@
-pub mod integrator;
 pub mod camera;
+pub mod integrator;
 
 mod pdf;
-pub use pdf::{Pdf, PDFTrait, CosinePDF, MixedPDF, HittablePDF};
+pub use pdf::{CosinePDF, HittablePDF, MixedPDF, PDFTrait, Pdf};
 
 mod ray;
 pub use ray::Ray;

@@ -458,7 +458,10 @@ impl Div<f64> for Mat4 {
 
 #[cfg(test)]
 mod tests {
-    use crate::linalg::{vec3::Vec3, mat4::{Mat4, Vec4}};
+    use crate::linalg::{
+        mat4::{Mat4, Vec4},
+        vec3::Vec3,
+    };
     use assert_approx_eq::assert_approx_eq;
 
     // Test creating a new vector with three rows, taking floats as an argument

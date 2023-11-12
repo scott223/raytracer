@@ -1,9 +1,9 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{color::Color, render::Ray, elements::HitRecord, linalg::Vec3};
+use crate::{color::Color, elements::HitRecord, linalg::Vec3, render::Ray};
 
-use super::{Reflects, ReflectRecord};
+use super::{ReflectRecord, Reflects};
 
 // Metal material, with a fuzz factor. Metal reflects all rays in a predictable way (normal reflection)
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]

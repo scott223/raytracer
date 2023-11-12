@@ -1,9 +1,13 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{color::Color, render::{Ray, Pdf, CosinePDF}, elements::HitRecord};
+use crate::{
+    color::Color,
+    elements::HitRecord,
+    render::{CosinePDF, Pdf, Ray},
+};
 
-use super::{Scatterable, ScatterRecord};
+use super::{ScatterRecord, Scatterable};
 
 // Lambertian (diffuse) material, that scatters rays in a semi-random direction (lambertian distribution = more concentrated around the normal)
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]

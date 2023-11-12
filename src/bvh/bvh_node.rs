@@ -4,8 +4,8 @@ use super::aabb::Aabb;
 
 use crate::elements::*;
 use crate::interval::Interval;
-use crate::render::Ray;
 use crate::linalg::Vec3;
+use crate::render::Ray;
 
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};

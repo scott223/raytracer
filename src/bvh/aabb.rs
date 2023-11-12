@@ -1,7 +1,7 @@
 use crate::elements::Hittable;
 use crate::interval::Interval;
-use crate::render::Ray;
 use crate::linalg::Vec3;
+use crate::render::Ray;
 
 use std::fmt;
 use std::ops::Index;
@@ -172,8 +172,8 @@ impl Index<usize> for Aabb {
 mod tests {
     use crate::bvh::aabb::Aabb;
     use crate::interval::Interval;
-    use crate::render::Ray;
     use crate::linalg::Vec3;
+    use crate::render::Ray;
     use assert_approx_eq::assert_approx_eq;
 
     // Test creating a new aabb, taking intervals as an argument

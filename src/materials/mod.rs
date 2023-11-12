@@ -11,9 +11,13 @@ mod dielectric;
 pub use dielectric::Dielectric;
 
 use rand::Rng;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{elements::HitRecord, render::{Ray, Pdf}, color::Color};
+use crate::{
+    color::Color,
+    elements::HitRecord,
+    render::{Pdf, Ray},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Material {
