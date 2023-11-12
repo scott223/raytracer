@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::aabb::Aabb;
 
 use crate::elements::*;
-use crate::interval::Interval;
+use crate::render::Interval;
 use crate::linalg::Vec3;
 use crate::render::Ray;
 

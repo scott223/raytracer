@@ -18,7 +18,6 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 - ...
 
 ## todo's
-- rename BHV to BVH...
 - jittering sampling
 
 ## Credits / references

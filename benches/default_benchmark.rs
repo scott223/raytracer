@@ -2,11 +2,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use rand::seq::SliceRandom;
 use rand_distr::Distribution;
 use rand_distr::Uniform;
-use raytracer::bvh::aabb::Aabb;
+use raytracer::bvh::Aabb;
 
-use raytracer::interval::Interval;
-use raytracer::linalg::vec3::Vec3;
-use raytracer::render::ray::Ray;
+use raytracer::render::Interval;
+use raytracer::linalg::Vec3;
+use raytracer::render::Ray;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let bbox: Aabb = Aabb::new_from_points(Vec3::new(1.0, 1.0, 1.0), Vec3::new(2.0, 2.0, 2.0));

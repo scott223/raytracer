@@ -1,5 +1,5 @@
 use crate::elements::*;
-use crate::interval::Interval;
+use crate::render::Interval;
 use crate::render::camera::Camera;
 use crate::render::Ray;
 use crate::{color::Color, render::camera::JSONCamera};

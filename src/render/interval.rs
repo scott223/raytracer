@@ -35,7 +35,7 @@ impl Interval {
 
 #[cfg(test)]
 mod tests {
-    use crate::interval::Interval;
+    use crate::render::Interval;
     use assert_approx_eq::assert_approx_eq;
 
     // Test creating a new interval, taking floats as an argument

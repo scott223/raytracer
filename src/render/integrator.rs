@@ -9,7 +9,7 @@ use crate::{
     color::Color,
     config::{Config, JSONScene},
     elements::{Element, Hittable, JSONElement},
-    interval::Interval,
+    render::Interval,
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
     render::pdf::{HittablePDF, MixedPDF, PDFTrait, Pdf},
