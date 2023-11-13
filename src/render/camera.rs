@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{config::Config, linalg::Vec3, render::ray::Ray};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct JSONCamera {
     pub camera_center: Vec3,
     pub camera_look_at: Vec3,

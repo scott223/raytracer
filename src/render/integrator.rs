@@ -1,4 +1,4 @@
-use std::{error::Error, time::Instant};
+use std::{error::Error, time::Instant, fs::File, io::{BufReader, BufWriter}, path::Path};
 
 use indicatif::ProgressBar;
 use rand::{rngs::SmallRng, SeedableRng};
@@ -16,20 +16,86 @@ use crate::{
     render::ray::Ray,
 };
 
+#[derive(Debug, Clone)]
 pub struct RenderIntegrator {
     json_scene: JSONScene,
     config: Config,
+    pixels: Vec<Color>,
 }
 
 impl RenderIntegrator {
     pub fn new(json_scene: JSONScene, config: Config) -> Self {
-        RenderIntegrator { json_scene, config }
+        // create a 1-d vector holding all the pixels, and 
+        let pixels = vec![
+            Color::new(0.0, 0.0, 0.0);
+            (config.img_width * config.img_height) as usize
+        ];
+
+        RenderIntegrator { json_scene, config, pixels }
+    }
+
+    pub fn new_from_json(scene_path: &str, config_path: &str) -> Self {
+        
+        // Open the Scene file
+        let scene_file =
+        File::open(scene_path).expect("Error reading input/scene.json, quitting");
+        let scene_reader = BufReader::new(scene_file);
+
+        // Read the JSON contents of the file as an instance of `Scene`.
+        let scene: JSONScene =
+            serde_json::from_reader(scene_reader).expect("Error parsing input/scene.json, quitting");
+
+        // Open the Config file
+        let config_file =
+            File::open(config_path).expect("Error reading input/config.json, quitting");
+        let config_reader = BufReader::new(config_file);
+
+        // Read the JSON contents of the file as an instance of `Config`.
+        let config: Config =
+            serde_json::from_reader(config_reader).expect("Error parsing input/config.json, quitting");
+        
+        return RenderIntegrator::new(scene, config);
+    }
+
+    pub fn save_to_png(&self, png_path: &str) -> Result<(), Box<dyn Error>> {
+        let mut raw_pixels: Vec<u8> = Vec::new();
+
+        for p in &self.pixels {
+            let rgb = p.to_rgb();
+            raw_pixels.push(rgb.r);
+            raw_pixels.push(rgb.g);
+            raw_pixels.push(rgb.b);
+        }
+
+        let path = Path::new(png_path);
+        let file = File::create(path).unwrap();
+        let w = &mut BufWriter::new(file);
+
+        let mut encoder =
+            png::Encoder::new(w, self.config.img_width as u32, self.config.img_height as u32); // Width x heigth
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.set_source_gamma(png::ScaledFloat::new(1.0 / 2.2)); // 1.0 / 2.2, unscaled, but rounded
+        let source_chromaticities = png::SourceChromaticities::new(
+            // Using unscaled instantiation here
+            (0.31270, 0.32900),
+            (0.64000, 0.33000),
+            (0.30000, 0.60000),
+            (0.15000, 0.06000),
+        );
+        encoder.set_source_chromaticities(source_chromaticities);
+        let mut writer = encoder.write_header().unwrap();
+
+        let data = raw_pixels; // An array containing a RGB sequence
+        writer.write_image_data(&data).unwrap(); // Save
+        
+        Ok(())
     }
 
     // fn render
     // the main render function that sets up the camera, creates an 1d vector for the pixels, splits it into bands, calls the band render function and writes to an image file
     // applies parallel rendering using Rayon
-    pub fn render(self) -> Result<Vec<Color>, Box<dyn Error>> {
+    pub fn render(&mut self) -> Result<(), Box<dyn Error>> {
         // create a new camera object
         let camera: Camera = Camera::new(&self.config, &self.json_scene.camera);
 
@@ -37,7 +103,7 @@ impl RenderIntegrator {
         // this allows us to pre-calculate various things like the bbox or commonly used numbers in the cconstructor
         let mut objects: Vec<Element> = Vec::new();
 
-        for json_element in self.json_scene.elements {
+        for json_element in &self.json_scene.elements {
             match json_element {
                 JSONElement::JSONQuad(q) => q.add_as_element(&mut objects),
                 JSONElement::JSONSphere(s) => s.add_as_element(&mut objects),
@@ -56,12 +122,9 @@ impl RenderIntegrator {
         // create a refrence to the elements that are marked as an attractor
         let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
 
-        // create a 1-d vector holding all the pixels, and split into bands for parallel rendering
-        let mut pixels = vec![
-            Color::new(0.0, 0.0, 0.0);
-            (self.config.img_width * self.config.img_height) as usize
-        ];
-        let bands: Vec<(usize, &mut [Color])> = pixels
+        // split into bands for parallel rendering
+
+        let bands: Vec<(usize, &mut [Color])> = self.pixels
             .chunks_mut(self.config.img_width as usize)
             .enumerate()
             .collect();
@@ -86,8 +149,8 @@ impl RenderIntegrator {
 
         log::info!("Render finished in {}ms", start.elapsed().as_millis());
 
-        // return the pixels
-        Ok(pixels)
+        // return an OK
+        Ok(())
     }
 
     // fn render_line

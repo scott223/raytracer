@@ -36,7 +36,7 @@ impl Default for Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JSONScene {
     pub camera: JSONCamera,
     pub elements: Vec<JSONElement>,

@@ -1,5 +1,6 @@
 pub mod camera;
-pub mod integrator;
+mod integrator;
+pub use integrator::RenderIntegrator;
 
 mod pdf;
 pub use pdf::{CosinePDF, HittablePDF, MixedPDF, PDFTrait, Pdf};
