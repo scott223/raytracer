@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use super::aabb::Aabb;
 
 use crate::elements::*;
-use crate::render::Interval;
 use crate::linalg::Vec3;
+use crate::render::Interval;
 use crate::render::Ray;
 
 use rand::rngs::SmallRng;

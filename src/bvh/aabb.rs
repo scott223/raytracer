@@ -1,6 +1,6 @@
 use crate::elements::Hittable;
-use crate::render::Interval;
 use crate::linalg::Vec3;
+use crate::render::Interval;
 use crate::render::Ray;
 
 use std::fmt;
@@ -171,8 +171,8 @@ impl Index<usize> for Aabb {
 #[cfg(test)]
 mod tests {
     use crate::bvh::aabb::Aabb;
-    use crate::render::Interval;
     use crate::linalg::Vec3;
+    use crate::render::Interval;
     use crate::render::Ray;
     use assert_approx_eq::assert_approx_eq;
 

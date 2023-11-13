@@ -4,8 +4,8 @@ use rand_distr::Distribution;
 use rand_distr::Uniform;
 use raytracer::bvh::Aabb;
 
-use raytracer::render::Interval;
 use raytracer::linalg::Vec3;
+use raytracer::render::Interval;
 use raytracer::render::Ray;
 
 pub fn criterion_benchmark(c: &mut Criterion) {

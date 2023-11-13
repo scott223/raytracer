@@ -1,4 +1,10 @@
-use std::{error::Error, time::Instant, fs::File, io::{BufReader, BufWriter}, path::Path};
+use std::{
+    error::Error,
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::Path,
+    time::Instant,
+};
 
 use indicatif::ProgressBar;
 use rand::{rngs::SmallRng, SeedableRng};
@@ -9,11 +15,11 @@ use crate::{
     color::Color,
     config::{Config, JSONScene},
     elements::{Element, Hittable, JSONElement},
-    render::Interval,
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
     render::pdf::{HittablePDF, MixedPDF, PDFTrait, Pdf},
     render::ray::Ray,
+    render::Interval,
 };
 
 #[derive(Debug, Clone)]
@@ -25,25 +31,25 @@ pub struct RenderIntegrator {
 
 impl RenderIntegrator {
     pub fn new(json_scene: JSONScene, config: Config) -> Self {
-        // create a 1-d vector holding all the pixels, and 
-        let pixels = vec![
-            Color::new(0.0, 0.0, 0.0);
-            (config.img_width * config.img_height) as usize
-        ];
+        // create a 1-d vector holding all the pixels, and
+        let pixels =
+            vec![Color::new(0.0, 0.0, 0.0); (config.img_width * config.img_height) as usize];
 
-        RenderIntegrator { json_scene, config, pixels }
+        RenderIntegrator {
+            json_scene,
+            config,
+            pixels,
+        }
     }
 
     pub fn new_from_json(scene_path: &str, config_path: &str) -> Self {
-        
         // Open the Scene file
-        let scene_file =
-        File::open(scene_path).expect("Error reading input/scene.json, quitting");
+        let scene_file = File::open(scene_path).expect("Error reading input/scene.json, quitting");
         let scene_reader = BufReader::new(scene_file);
 
         // Read the JSON contents of the file as an instance of `Scene`.
-        let scene: JSONScene =
-            serde_json::from_reader(scene_reader).expect("Error parsing input/scene.json, quitting");
+        let scene: JSONScene = serde_json::from_reader(scene_reader)
+            .expect("Error parsing input/scene.json, quitting");
 
         // Open the Config file
         let config_file =
@@ -51,9 +57,9 @@ impl RenderIntegrator {
         let config_reader = BufReader::new(config_file);
 
         // Read the JSON contents of the file as an instance of `Config`.
-        let config: Config =
-            serde_json::from_reader(config_reader).expect("Error parsing input/config.json, quitting");
-        
+        let config: Config = serde_json::from_reader(config_reader)
+            .expect("Error parsing input/config.json, quitting");
+
         return RenderIntegrator::new(scene, config);
     }
 
@@ -71,8 +77,11 @@ impl RenderIntegrator {
         let file = File::create(path).unwrap();
         let w = &mut BufWriter::new(file);
 
-        let mut encoder =
-            png::Encoder::new(w, self.config.img_width as u32, self.config.img_height as u32); // Width x heigth
+        let mut encoder = png::Encoder::new(
+            w,
+            self.config.img_width as u32,
+            self.config.img_height as u32,
+        ); // Width x heigth
         encoder.set_color(png::ColorType::Rgb);
         encoder.set_depth(png::BitDepth::Eight);
         encoder.set_source_gamma(png::ScaledFloat::new(1.0 / 2.2)); // 1.0 / 2.2, unscaled, but rounded
@@ -88,7 +97,7 @@ impl RenderIntegrator {
 
         let data = raw_pixels; // An array containing a RGB sequence
         writer.write_image_data(&data).unwrap(); // Save
-        
+
         Ok(())
     }
 
@@ -124,7 +133,8 @@ impl RenderIntegrator {
 
         // split into bands for parallel rendering
 
-        let bands: Vec<(usize, &mut [Color])> = self.pixels
+        let bands: Vec<(usize, &mut [Color])> = self
+            .pixels
             .chunks_mut(self.config.img_width as usize)
             .enumerate()
             .collect();

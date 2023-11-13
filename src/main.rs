@@ -1,12 +1,12 @@
 use dotenv::dotenv;
-use std::env;
 use raytracer::render::RenderIntegrator;
+use std::env;
 
 // App main function
 // load the JSON files for the Scene and for the Configuration, and calls the main raytracer function render from lib.rs
 fn main() {
     dotenv().ok();
-    
+
     env_logger::init();
 
     log::info!(
@@ -14,12 +14,12 @@ fn main() {
         env::current_dir().unwrap()
     );
 
-    let mut r: RenderIntegrator = RenderIntegrator::new_from_json("input/scene.json", "input/config.json");
+    let mut r: RenderIntegrator =
+        RenderIntegrator::new_from_json("input/scene.json", "input/config.json");
 
     // execute the main render
     match r.render() {
         Ok(()) => {
-            
             // success, so save to png
             match r.save_to_png("renders/render.png") {
                 Ok(()) => {

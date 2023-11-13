@@ -11,10 +11,8 @@ use serde::{Deserialize, Serialize};
 extern crate wavefront_obj;
 use wavefront_obj::obj;
 
+use crate::linalg::{Mat4, Onb, Vec3, Vec4};
 use crate::render::Interval;
-use crate::linalg::{
-    Onb, Vec3, Mat4, Vec4,
-};
 use crate::render::Ray;
 use crate::{bvh::Aabb, materials::*};
 
