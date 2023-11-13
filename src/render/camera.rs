@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{config::Config, linalg::Vec3, render::ray::Ray};
+use crate::{linalg::Vec3, render::ray::Ray, render::Config};
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct JSONCamera {
@@ -132,8 +132,8 @@ impl Camera {
 #[cfg(test)]
 mod tests {
 
-    use crate::color::Color;
-    use crate::config::Config;
+    use crate::render::Color;
+    use crate::render::Config;
 
     #[test_log::test]
     fn test_create_camera() {

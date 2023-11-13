@@ -12,14 +12,14 @@ use rayon::prelude::*;
 
 use crate::{
     bvh::BVHNode,
-    color::Color,
-    config::{Config, JSONScene},
     elements::{Element, Hittable, JSONElement},
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
     render::pdf::{HittablePDF, MixedPDF, PDFTrait, Pdf},
     render::ray::Ray,
+    render::Color,
     render::Interval,
+    render::{Config, JSONScene},
 };
 
 #[derive(Debug, Clone)]

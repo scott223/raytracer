@@ -1,11 +1,11 @@
-use dotenv::dotenv;
-use raytracer::render::RenderIntegrator;
 use std::env;
+use dotenv;
+use raytracer::render::RenderIntegrator;
 
 // App main function
 // load the JSON files for the Scene and for the Configuration, and calls the main raytracer function render from lib.rs
 fn main() {
-    dotenv().ok();
+   dotenv::dotenv().ok();
 
     env_logger::init();
 

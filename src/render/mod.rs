@@ -1,4 +1,10 @@
-pub mod camera;
+mod camera;
+pub use camera::Camera;
+
+mod config;
+pub use config::Config;
+pub use config::JSONScene;
+
 mod integrator;
 pub use integrator::RenderIntegrator;
 
@@ -10,3 +16,7 @@ pub use ray::Ray;
 
 mod interval;
 pub use interval::Interval;
+
+mod color;
+pub use color::Color;
+pub use color::Rgb;

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{color::Color, elements::HitRecord, render::Ray};
+use crate::{elements::HitRecord, render::Color, render::Ray};
 
 use super::Emmits;
 

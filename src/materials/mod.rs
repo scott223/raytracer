@@ -14,8 +14,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    color::Color,
     elements::HitRecord,
+    render::Color,
     render::{Pdf, Ray},
 };
 

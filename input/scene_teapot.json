@@ -17,7 +17,7 @@
   "elements": [
     {
       "JSONObj": {
-        "filepath": "input/obj/teapot.obj",
+        "filepath": "obj/teapot.obj",
         "material": {
           "Lambertian": {
             "albedo": {

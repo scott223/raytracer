@@ -154,7 +154,7 @@ impl Div<f64> for Color {
 
 #[cfg(test)]
 mod tests {
-    use crate::color::Color;
+    use crate::render::Color;
     use assert_approx_eq::assert_approx_eq;
 
     #[test_log::test]

@@ -1,8 +1,7 @@
-use crate::elements::*;
-use crate::render::camera::Camera;
-use crate::render::Interval;
-use crate::render::Ray;
-use crate::{color::Color, render::camera::JSONCamera};
+
+use crate::elements::{JSONElement, Element, HitRecord, Hittable};
+use crate::render::{Ray, Interval, Camera};
+use crate::{render::camera::JSONCamera, render::Color};
 
 use serde::{Deserialize, Serialize};
 
@@ -69,6 +68,7 @@ impl Default for Scene {
     }
 } */
 
+#[allow(dead_code)]
 impl Scene {
     // fn trace_hits
     // find the nearest hit for a ray
@@ -76,6 +76,8 @@ impl Scene {
         self.elements
             .iter()
             .filter_map(|e| e.hit(ray, &mut Interval::new(0.001, f64::MAX)))
-            .min_by(|i1, i2| i1.t.partial_cmp(&i2.t).unwrap())
+            .min_by(|i1, i2| {
+                i1.t.partial_cmp(&i2.t).unwrap()
+            })
     }
 }

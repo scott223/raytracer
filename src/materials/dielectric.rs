@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{color::Color, elements::HitRecord, linalg::Vec3, render::Ray};
+use crate::{elements::HitRecord, linalg::Vec3, render::Color, render::Ray};
 
 use super::{RefractRecord, Refracts};
 
