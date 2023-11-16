@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 use std::fmt;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub, Index};
 
 use rand::Rng;
 
@@ -175,6 +175,20 @@ impl Vec3 {
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{:.3}, {:.3}, {:.3}]", self.x, self.y, self.z)
+    }
+}
+
+impl Index<usize> for Vec3 {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &f64 {
+        if index == 0 {
+            &self.x
+        } else if index == 1 {
+            &self.y
+        } else {
+            &self.z
+        }
     }
 }
 

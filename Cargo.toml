@@ -3,7 +3,7 @@ name = "raytracer"
 version = "0.2.0"
 edition = "2021"
 authors = ["Scott Brugmans <scott.brugmans@gmail.com>"]
-respository = "https://github.com/scott223/raytracer/"
+repository = "https://github.com/scott223/raytracer/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -13,8 +13,9 @@ pub struct Aabb {
     x: Interval,
     y: Interval,
     z: Interval,
-    min: Vec3,
-    max: Vec3,
+    pub min: Vec3,
+    pub max: Vec3,
+    pub centroid: Vec3,
 }
 
 impl Default for Aabb {
@@ -34,19 +35,25 @@ impl Default for Aabb {
             },
             min: Vec3::new(0.0, 0.0, 0.0),
             max: Vec3::new(0.0, 0.0, 0.0),
+            centroid: Vec3::new(0.0, 0.0, 0.0),
         }
     }
 }
 
 impl Aabb {
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
-        Aabb {
+        
+        let mut bbox = Aabb {
             x,
             y,
             z,
             min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
             max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
-        }
+            centroid: Vec3::new(0.0, 0.0, 0.0),
+        };
+
+        bbox.centroid = calculate_centroid(bbox);
+        bbox
     }
 
     pub fn new_from_points(p: Vec3, q: Vec3) -> Self {
@@ -54,13 +61,17 @@ impl Aabb {
         let y: Interval = Interval::new(q.y().min(p.y()), q.y().max(p.y()));
         let z: Interval = Interval::new(q.z().min(p.z()), q.z().max(p.z()));
 
-        Aabb {
+        let mut bbox = Aabb {
             x,
             y,
             z,
             min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
             max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
-        }
+            centroid: Vec3::new(0.0, 0.0, 0.0),
+        };
+
+        bbox.centroid = calculate_centroid(bbox);
+        bbox
     }
 
     pub fn new_from_aabbs(a: Aabb, b: Aabb) -> Self {
@@ -68,13 +79,17 @@ impl Aabb {
         let y: Interval = Interval::new_from_intervals(a.y, b.y);
         let z: Interval = Interval::new_from_intervals(a.z, b.z);
 
-        Aabb {
+        let mut bbox = Aabb {
             x,
             y,
             z,
             min: Vec3::new(x.interval_min, y.interval_min, z.interval_min),
             max: Vec3::new(x.interval_max, y.interval_max, z.interval_max),
-        }
+            centroid: Vec3::new(0.0, 0.0, 0.0),
+        };
+
+        bbox.centroid = calculate_centroid(bbox);
+        bbox
     }
 
     // return an AABB that has no side narrower than some delta, padding if necessary
@@ -97,15 +112,20 @@ impl Aabb {
             self.z.expand(delta)
         };
 
-        Aabb {
+        let mut bbox = Aabb {
             x: new_x,
             y: new_y,
             z: new_z,
             min: Vec3::new(new_x.interval_min, new_y.interval_min, new_z.interval_min),
             max: Vec3::new(new_x.interval_max, new_y.interval_max, new_z.interval_max),
-        }
+            centroid: Vec3::new(0.0, 0.0, 0.0),
+        };
+
+        bbox.centroid = calculate_centroid(bbox);
+        bbox
     }
 
+    #[inline(always)]
     pub fn axis(&self, n: usize) -> Interval {
         match n {
             0 => self.x,
@@ -113,6 +133,25 @@ impl Aabb {
             2 => self.z,
             _ => panic!("axis out of bounds"),
         }
+    }
+
+    #[inline(always)]
+    pub fn largest_axis(&self) -> usize {
+        let size = self.max - self.min;
+
+        if size.x() > size.y() && size.x() > size.z() {
+            0
+        } else if size.y() > size.z() {
+            1
+        } else {
+            2
+        }
+    }
+
+    /// Returns the position of the centriod of the Aabb,
+    #[inline(always)]
+    pub fn centroid(&self) -> Vec3 {
+        calculate_centroid(*self)
     }
 
     // checks if we have a hit with the aabb, in a given interval
@@ -136,11 +175,21 @@ impl Aabb {
 
         ray_min.max(0.0) <= ray_max
     }
+
+    #[inline(always)]
     pub fn grow<T: Hittable>(mut self, b: T) {
         self.x = Interval::new_from_intervals(self.x, b.bounding_box().x);
         self.y = Interval::new_from_intervals(self.y, b.bounding_box().y);
         self.z = Interval::new_from_intervals(self.z, b.bounding_box().z);
     }
+}
+
+pub fn calculate_centroid(bbox: Aabb) -> Vec3 {
+    Vec3::new(
+        bbox.min.x() + (bbox.max.x() - bbox.min.x())/2.,
+        bbox.min.y() + (bbox.max.y() - bbox.min.y())/2.,
+        bbox.min.z() + (bbox.max.z() - bbox.min.z())/2.,
+    )
 }
 
 /// Display trait for Aabb
@@ -259,5 +308,41 @@ mod tests {
         let ray_two: Ray = Ray::new(Vec3::new(5.0, 5.0, 5.0), Vec3::new(6.0, 6.0, 6.0));
 
         assert_eq!(aabb_p.hit(&ray_two, &mut int), false);
+    }
+
+    #[test_log::test]
+    fn test_centroid() {
+        let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
+        let q: Vec3 = Vec3::new(2.0, 2.0, 2.0);
+
+        let aabb_p: Aabb = Aabb::new_from_points(p, q);
+
+        let centroid = aabb_p.centroid();
+
+        assert_eq!(centroid.x(), 1.5);
+        assert_eq!(centroid.y(), 1.5);
+        assert_eq!(centroid.z(), 1.5);
+    }
+
+
+    #[test_log::test]
+    fn test_longest_axis() {
+        let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
+        let q: Vec3 = Vec3::new(2.0, 3.0, 2.0);
+
+        let aabb_p: Aabb = Aabb::new_from_points(p, q);
+
+        let largest_axis = aabb_p.largest_axis();
+
+        assert_eq!(largest_axis, 1);
+
+        let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
+        let q: Vec3 = Vec3::new(2.0, 3.0, 5.0);
+
+        let aabb_p: Aabb = Aabb::new_from_points(p, q);
+
+        let largest_axis = aabb_p.largest_axis();
+
+        assert_eq!(largest_axis, 2);
     }
 }

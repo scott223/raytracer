@@ -12,6 +12,8 @@ use rayon::prelude::*;
 
 use crate::{
     bvh::BVHNode,
+    bvh::BVH_SAH,
+    bvh::BVHNode_SAH,
     elements::{Element, Hittable, JSONElement},
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
@@ -42,25 +44,22 @@ impl RenderIntegrator {
         }
     }
 
-    pub fn new_from_json(scene_path: &str, config_path: &str) -> Self {
+    pub fn new_from_json(scene_path: &str, config_path: &str) -> Result<RenderIntegrator, Box<dyn Error>> {
         // Open the Scene file
-        let scene_file = File::open(scene_path).expect("Error reading input/scene.json, quitting");
-        let scene_reader = BufReader::new(scene_file);
+        let scene_file: File = File::open(scene_path)?;
+        let scene_reader: BufReader<File> = BufReader::new(scene_file);
 
         // Read the JSON contents of the file as an instance of `Scene`.
-        let scene: JSONScene = serde_json::from_reader(scene_reader)
-            .expect("Error parsing input/scene.json, quitting");
+        let scene: JSONScene = serde_json::from_reader(scene_reader)?;
 
         // Open the Config file
-        let config_file =
-            File::open(config_path).expect("Error reading input/config.json, quitting");
-        let config_reader = BufReader::new(config_file);
+        let config_file: File = File::open(config_path)?;
+        let config_reader: BufReader<File> = BufReader::new(config_file);
 
         // Read the JSON contents of the file as an instance of `Config`.
-        let config: Config = serde_json::from_reader(config_reader)
-            .expect("Error parsing input/config.json, quitting");
+        let config: Config = serde_json::from_reader(config_reader)?;
 
-        return RenderIntegrator::new(scene, config);
+        return Ok(RenderIntegrator::new(scene, config));
     }
 
     pub fn save_to_png(&self, png_path: &str) -> Result<(), Box<dyn Error>> {
@@ -127,6 +126,8 @@ impl RenderIntegrator {
         let end = objects.len();
         let bhv_tree: Box<dyn Hittable + Sync> = BVHNode::new(&mut objects, 0, end);
         log::info!("BHV tree generated");
+
+        let bvh_sah_tree = BVH_SAH::build(&objects);
 
         // create a refrence to the elements that are marked as an attractor
         let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
