@@ -1,7 +1,7 @@
 {
   "img_width": 600.0,
   "img_height": 600.0,
-  "samples": 16,
+  "samples": 12,
   "max_depth": 8,
   "sky_color": {
     "r": 0.3,

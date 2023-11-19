@@ -124,10 +124,7 @@ impl RenderIntegrator {
         }
 
         // the BHVNode creator will return a Box<Hittable>, either are BHVNode (if there are more than 1 objects) or an Element
-        log::info!("Creating the BHV node tree, with {} objects", objects.len());
-        let end = objects.len();
-        let bhv_tree: Box<dyn Hittable + Sync> = BVHNode::new(&mut objects, 0, end);
-        log::info!("BHV tree generated");
+        log::info!("Creating the BVH node tree, with {} objects", objects.len());
 
         let bvh_tree_sah = BVH_SAH::build(&objects);
 
@@ -153,7 +150,6 @@ impl RenderIntegrator {
                 i as i64,
                 band,
                 &camera,
-                &bhv_tree,
                 &bvh_tree_sah,
                 &attractors,
                 &self.config,
@@ -173,7 +169,6 @@ impl RenderIntegrator {
         y: i64,
         band: &mut [Color],
         camera: &Camera,
-        bhv_tree: &Box<dyn Hittable + Sync>,
         bvh_tree_sah: &BVH_SAH,
         lights: &Vec<&Element>,
         config: &Config,
@@ -199,7 +194,6 @@ impl RenderIntegrator {
                 }
 
                 color += Self::ray_color(
-                    bhv_tree,
                     bvh_tree_sah,
                     lights,
                     &ray,
@@ -221,7 +215,6 @@ impl RenderIntegrator {
     // finds the color of the ray, by checking for hits and using the material of that hit + scattered/reflected rays to establish the color
     // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
     fn ray_color(
-        bhv_tree: &Box<dyn Hittable + Sync>,
         bvh_tree_sah: &BVH_SAH,
         attractors: &Vec<&Element>,
         ray: &Ray,
@@ -277,7 +270,6 @@ impl RenderIntegrator {
                     // there is a scattered ray, so lets get the color of that ray
                     // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                     let target_color: Color = Self::ray_color(
-                        bhv_tree,
                         bvh_tree_sah,
                         attractors,
                         &scattered_ray,
@@ -312,7 +304,6 @@ impl RenderIntegrator {
                     if let Some(reflected_ray) = reflect.ray {
                         // there is refleced ray, so lets follow that one
                         let target_color: Color = Self::ray_color(
-                            bhv_tree,
                             bvh_tree_sah,
                             attractors,
                             &reflected_ray,
@@ -330,7 +321,6 @@ impl RenderIntegrator {
                 // and finally refraction
                 if let Some(refract) = hit.material.refract(ray, &hit, rng) {
                     let target_color: Color = Self::ray_color(
-                        bhv_tree,
                         bvh_tree_sah,
                         attractors,
                         &refract.ray,
