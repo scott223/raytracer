@@ -5,4 +5,4 @@ mod bvh_node;
 pub use bvh_node::BVHNode;
 
 mod bvh_node_sah;
-pub use bvh_node_sah::{BVH_SAH, BVHNode_SAH};
+pub use bvh_node_sah::{BVHNode_SAH, BVH_SAH};

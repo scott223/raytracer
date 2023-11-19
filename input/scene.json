@@ -14,8 +14,36 @@
     "camera_defocus_angle": 0.0,
     "camera_focus_dist": 800.0
   },
-  "elements": 
-    [
+  "elements": [
+    {
+      "JSONObj": {
+        "filepath": "input/obj/dragon.obj",
+        "material": {
+          "Lambertian": {
+            "albedo": {
+              "r": 0.43,
+              "g": 0.53,
+              "b": 0.43
+            }
+          }
+        },
+        "transpose" : {
+          "x": 220.0,
+          "y": 0.0,
+          "z": 200.0
+        },
+        "rotate" : {
+          "theta_x": 0.0,
+          "theta_y": -3.2,
+          "theta_z": 0.0
+        },
+        "scale" : {
+          "x" : 20.0,
+          "y" : 20.0,
+          "z" : 20.0
+        }
+      }
+    },
     {
       "JSONBox": {
         "a": {
@@ -391,26 +419,26 @@
   {
     "JSONQuad": {
       "q": {
-        "x": 383.0,
+        "x": 343.0,
         "y": 554.0,
-        "z": 305.0
+        "z": 332.0
       },
       "u": {
-        "x": -210.0,
+        "x": -130.0,
         "y": 0.0,
         "z": 0.0
       },
       "v": {
         "x": 0.0,
         "y": 0.0,
-        "z": -155.0
+        "z": -105.0
       },
       "material": {
         "DiffuseLight": {
           "albedo": {
-            "r": 5.0,
-            "g": 5.0,
-            "b": 5.0
+            "r": 8.0,
+            "g": 8.0,
+            "b": 8.0
           }
         }
       },

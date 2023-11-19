@@ -13,7 +13,6 @@ use rayon::prelude::*;
 use crate::{
     bvh::BVHNode,
     bvh::BVH_SAH,
-    bvh::BVHNode_SAH,
     elements::{Element, Hittable, JSONElement},
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
@@ -44,7 +43,10 @@ impl RenderIntegrator {
         }
     }
 
-    pub fn new_from_json(scene_path: &str, config_path: &str) -> Result<RenderIntegrator, Box<dyn Error>> {
+    pub fn new_from_json(
+        scene_path: &str,
+        config_path: &str,
+    ) -> Result<RenderIntegrator, Box<dyn Error>> {
         // Open the Scene file
         let scene_file: File = File::open(scene_path)?;
         let scene_reader: BufReader<File> = BufReader::new(scene_file);
@@ -127,7 +129,7 @@ impl RenderIntegrator {
         let bhv_tree: Box<dyn Hittable + Sync> = BVHNode::new(&mut objects, 0, end);
         log::info!("BHV tree generated");
 
-        let bvh_sah_tree = BVH_SAH::build(&objects);
+        let bvh_tree_sah = BVH_SAH::build(&objects);
 
         // create a refrence to the elements that are marked as an attractor
         let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
@@ -152,6 +154,7 @@ impl RenderIntegrator {
                 band,
                 &camera,
                 &bhv_tree,
+                &bvh_tree_sah,
                 &attractors,
                 &self.config,
             );
@@ -171,6 +174,7 @@ impl RenderIntegrator {
         band: &mut [Color],
         camera: &Camera,
         bhv_tree: &Box<dyn Hittable + Sync>,
+        bvh_tree_sah: &BVH_SAH,
         lights: &Vec<&Element>,
         config: &Config,
     ) {
@@ -181,21 +185,28 @@ impl RenderIntegrator {
             let mut color: Color = Color::new(0.0, 0.0, 0.0);
 
             // sets a pixel to follow and print detailed logs
-            let _follow_coords: [usize; 2] = [75, 200];
+            let follow_coords: [usize; 2] = [40, 120];
 
             // loop through all the anti aliasing samples
             for i in 0..config.samples {
                 // get multiple rays for anti alliasing, and add the colors
                 let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-                //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
-                let follow = false;
+                let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+                //let follow = false;
 
                 if follow {
                     log::info!("sample: {}", i);
                 }
 
-                color +=
-                    Self::ray_color(bhv_tree, lights, &ray, config.max_depth, &mut rng, follow);
+                color += Self::ray_color(
+                    bhv_tree,
+                    bvh_tree_sah,
+                    lights,
+                    &ray,
+                    config.max_depth,
+                    &mut rng,
+                    follow,
+                );
             }
 
             // set pixel color, but first divide by the number of samples to get the average and return
@@ -211,6 +222,7 @@ impl RenderIntegrator {
     // limit the number of rays it will scatter/reflect by setting depth (e.g. to 32)
     fn ray_color(
         bhv_tree: &Box<dyn Hittable + Sync>,
+        bvh_tree_sah: &BVH_SAH,
         attractors: &Vec<&Element>,
         ray: &Ray,
         depth: usize,
@@ -224,7 +236,7 @@ impl RenderIntegrator {
         }
 
         // we trace the ray to see what it will hit. uses the BHV_tree to figure our what the first hit is
-        let trace = bhv_tree.hit(ray, &mut Interval::new(0.001, f64::MAX));
+        let trace = bvh_tree_sah.hit(ray, &mut Interval::new(0.0001, f64::MAX), follow);
 
         match trace {
             Some(hit) => {
@@ -266,6 +278,7 @@ impl RenderIntegrator {
                     // call the ray_color function again, now with the reflected ray but decrease the depth by 1 so that we dont run into an infinite loop
                     let target_color: Color = Self::ray_color(
                         bhv_tree,
+                        bvh_tree_sah,
                         attractors,
                         &scattered_ray,
                         depth - 1,
@@ -288,7 +301,7 @@ impl RenderIntegrator {
 
                     // if we track this pixel, print out extra info
                     if follow {
-                        log::info!("color_from_scatter: {:?}, target color: {:?}, attentuation: {:?}, scattering_pdf: {:?}, pdf_val: {:?}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
+                        log::info!("color_from_scatter: {}, target color: {}, attentuation: {}, scattering_pdf: {:.3}, pdf_val: {:.3}", color_from_scatter, target_color, scatter.attenuation, scattering_pdf, pdf_val);
                     }
 
                     return color_from_scatter;
@@ -300,6 +313,7 @@ impl RenderIntegrator {
                         // there is refleced ray, so lets follow that one
                         let target_color: Color = Self::ray_color(
                             bhv_tree,
+                            bvh_tree_sah,
                             attractors,
                             &reflected_ray,
                             depth - 1,
@@ -315,8 +329,15 @@ impl RenderIntegrator {
 
                 // and finally refraction
                 if let Some(refract) = hit.material.refract(ray, &hit, rng) {
-                    let target_color: Color =
-                        Self::ray_color(bhv_tree, attractors, &refract.ray, depth - 1, rng, follow);
+                    let target_color: Color = Self::ray_color(
+                        bhv_tree,
+                        bvh_tree_sah,
+                        attractors,
+                        &refract.ray,
+                        depth - 1,
+                        rng,
+                        follow,
+                    );
 
                     return refract.attenuation * target_color;
                 }

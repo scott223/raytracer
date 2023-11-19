@@ -1,3 +1,4 @@
+use crate::elements::Element;
 use crate::elements::Hittable;
 use crate::linalg::Vec3;
 use crate::render::Interval;
@@ -42,7 +43,6 @@ impl Default for Aabb {
 
 impl Aabb {
     pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
-        
         let mut bbox = Aabb {
             x,
             y,
@@ -74,6 +74,10 @@ impl Aabb {
         bbox
     }
 
+    pub fn new_from_point(p: Vec3) -> Self {
+        Aabb::new_from_points(p, p)
+    }
+
     pub fn new_from_aabbs(a: Aabb, b: Aabb) -> Self {
         let x: Interval = Interval::new_from_intervals(a.x, b.x);
         let y: Interval = Interval::new_from_intervals(a.y, b.y);
@@ -90,6 +94,18 @@ impl Aabb {
 
         bbox.centroid = calculate_centroid(bbox);
         bbox
+    }
+
+    pub fn new_from_objects(objects: &Vec<Element>, indices: &Vec<usize>) -> Self {
+        // start met bbox from first element
+        let mut bbox = objects[indices[0]].bounding_box();
+
+        // walk through each object and add the bounding box
+        for index in indices {
+            bbox = Aabb::new_from_aabbs(bbox, objects[*index].bounding_box());
+        }
+
+        return bbox;
     }
 
     // return an AABB that has no side narrower than some delta, padding if necessary
@@ -186,9 +202,9 @@ impl Aabb {
 
 pub fn calculate_centroid(bbox: Aabb) -> Vec3 {
     Vec3::new(
-        bbox.min.x() + (bbox.max.x() - bbox.min.x())/2.,
-        bbox.min.y() + (bbox.max.y() - bbox.min.y())/2.,
-        bbox.min.z() + (bbox.max.z() - bbox.min.z())/2.,
+        bbox.min.x() + (bbox.max.x() - bbox.min.x()) / 2.,
+        bbox.min.y() + (bbox.max.y() - bbox.min.y()) / 2.,
+        bbox.min.z() + (bbox.max.z() - bbox.min.z()) / 2.,
     )
 }
 
@@ -323,7 +339,6 @@ mod tests {
         assert_eq!(centroid.y(), 1.5);
         assert_eq!(centroid.z(), 1.5);
     }
-
 
     #[test_log::test]
     fn test_longest_axis() {

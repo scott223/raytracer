@@ -1,6 +1,5 @@
-
-use crate::elements::{JSONElement, Element, HitRecord, Hittable};
-use crate::render::{Ray, Interval, Camera};
+use crate::elements::{Element, HitRecord, Hittable, JSONElement};
+use crate::render::{Camera, Interval, Ray};
 use crate::{render::camera::JSONCamera, render::Color};
 
 use serde::{Deserialize, Serialize};
@@ -76,8 +75,6 @@ impl Scene {
         self.elements
             .iter()
             .filter_map(|e| e.hit(ray, &mut Interval::new(0.001, f64::MAX)))
-            .min_by(|i1, i2| {
-                i1.t.partial_cmp(&i2.t).unwrap()
-            })
+            .min_by(|i1, i2| i1.t.partial_cmp(&i2.t).unwrap())
     }
 }

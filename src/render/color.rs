@@ -1,4 +1,7 @@
-use std::ops::{Add, AddAssign, Div, Mul, Sub};
+use std::{
+    fmt,
+    ops::{Add, AddAssign, Div, Mul, Sub},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -149,6 +152,13 @@ impl Div<f64> for Color {
             g: self.g / q,
             b: self.b / q,
         }
+    }
+}
+
+// display trait
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{:.3}, {:.3}, {:.3}]", self.r, self.g, self.b)
     }
 }
 

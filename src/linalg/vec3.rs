@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 use std::fmt;
-use std::ops::{Add, Div, Mul, Neg, Sub, Index};
+use std::ops::{Add, Div, Index, Mul, Neg, Sub};
 
 use rand::Rng;
 

@@ -6,7 +6,7 @@ use serde::Serialize;
 use wavefront_obj::obj;
 
 use crate::elements::Triangle;
-use crate::linalg::{Vec3, Vec4, Mat4};
+use crate::linalg::{Mat4, Vec3, Vec4};
 use crate::materials::Material;
 
 use super::Element;

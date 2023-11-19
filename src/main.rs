@@ -1,5 +1,5 @@
-use std::env;
 use dotenv;
+use std::env;
 
 use raytracer::render::RenderIntegrator;
 
@@ -22,13 +22,21 @@ fn main() {
                 Ok(()) => {
                     // success, so save to png
                     match r.save_to_png("renders/render.png") {
-                        Ok(()) => { log::info!("File saved, closing program"); }
-                        Err(e) => { log::error!("Error in saving file: {}", e); }
+                        Ok(()) => {
+                            log::info!("File saved, closing program");
+                        }
+                        Err(e) => {
+                            log::error!("Error in saving file: {}", e);
+                        }
                     }
                 }
-                Err(e) => { log::error!("Error in render: {}", e); }
+                Err(e) => {
+                    log::error!("Error in render: {}", e);
+                }
             };
         }
-        Err(e) => { log::error!("Error in reading JSON: {}", e); }
+        Err(e) => {
+            log::error!("Error in reading JSON: {}", e);
+        }
     }
 } //fn main

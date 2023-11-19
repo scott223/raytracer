@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::bvh::Aabb;
 use crate::linalg::Vec3;
 use crate::materials::Material;
-use crate::render::{Ray, Interval};
+use crate::render::{Interval, Ray};
 
 use super::Element;
 use super::HitRecord;

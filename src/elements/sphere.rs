@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use rand::{Rng, rngs::SmallRng};
+use rand::{rngs::SmallRng, Rng};
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::bvh::Aabb;
 use crate::linalg::{Mat4, Onb, Vec3, Vec4};
 use crate::materials::Material;
-use crate::render::{Ray, Interval};
+use crate::render::{Interval, Ray};
 
 use super::Element;
 use super::HitRecord;
