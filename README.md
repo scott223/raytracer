@@ -1,6 +1,6 @@
 ![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/scott223/raytracer/rust.yml?style=flat-square&logo=github)
 [![dependency status](https://deps.rs/repo/github/scott223/raytracer/status.svg)](https://deps.rs/repo/github/scott223/raytracer)
-[![lines count](https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/scott223/raytracer/badge?filter=.rs$)](https://ghloc.vercel.app/scott223/raytracer/badge?filter=.rs$)
+[![lines count](https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/scott223/raytracer/badge?filter=.rs$)](https://ghloc.vercel.app/scott223/raytracer?filter=.rs$)
 
 
 # Raytracer
