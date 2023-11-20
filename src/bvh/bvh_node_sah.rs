@@ -3,7 +3,7 @@ use std::f64::EPSILON;
 use super::aabb::Aabb;
 use crate::{
     elements::*,
-    render::{Interval, Ray},
+    render::{Interval, Ray, Axis},
 };
 
 // this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
@@ -249,13 +249,13 @@ impl BVHNode_SAH {
                 let mut child_r_indices: Vec<usize> = Vec::with_capacity(indices.len() / 2);
 
                 // find the longest axis, to decide how to sort
-                let sort_axis = aabb_centroids.largest_axis();
-                let sort_axis_size = aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis];
+                let sort_axis: Axis = aabb_centroids.largest_axis();
+                let sort_axis_size: f64 = aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis];
 
                 if sort_axis_size < EPSILON {
                     // axis is too small, lets just divide into 2
 
-                    let mid = indices.len() / 2 as usize;
+                    let mid: usize = indices.len() / 2 as usize;
 
                     // TODO: write this one more idiomatic...
                     for (i, index) in indices.iter().enumerate() {

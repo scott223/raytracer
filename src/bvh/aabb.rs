@@ -1,14 +1,14 @@
 use crate::elements::Element;
 use crate::elements::Hittable;
 use crate::linalg::Vec3;
+use crate::render::Axis;
 use crate::render::Interval;
 use crate::render::Ray;
 
 use std::fmt;
 use std::ops::Index;
 
-// axis aligned bounding box
-
+/// Axis Aligned Bounding Box struct
 #[derive(Debug, Clone, Copy)]
 pub struct Aabb {
     x: Interval,
@@ -108,7 +108,7 @@ impl Aabb {
         return bbox;
     }
 
-    // return an AABB that has no side narrower than some delta, padding if necessary
+    /// Returns an AABB that has no side narrower than some delta, padding if necessary.
     pub fn pad(&self) -> Self {
         let delta: f64 = 0.0001;
 
@@ -152,26 +152,27 @@ impl Aabb {
     }
 
     #[inline(always)]
-    pub fn largest_axis(&self) -> usize {
+    pub fn largest_axis(&self) -> Axis {
         let size = self.max - self.min;
 
         if size.x() > size.y() && size.x() > size.z() {
-            0
+            Axis::X
         } else if size.y() > size.z() {
-            1
+            Axis::Y
         } else {
-            2
+            Axis::Z
         }
     }
 
-    /// Returns the position of the centriod of the Aabb,
+    /// Returns the position of the centriod of the Aabb.
     #[inline(always)]
     pub fn centroid(&self) -> Vec3 {
         calculate_centroid(*self)
     }
 
-    // checks if we have a hit with the aabb, in a given interval
-    // source: https://docs.rs/bvh/latest/src/bvh/ray.rs.html#168-188
+    /// Returns if we have a hit with the aabb, in a given interval
+    /// 
+    /// Source: <https://docs.rs/bvh/latest/src/bvh/ray.rs.html#168-188>
 
     pub fn hit(&self, ray: &Ray, _ray_t: &mut Interval) -> bool {
         let mut ray_min = (self[ray.sign_x].x() - ray.origin.x()) * ray.inv_direction.x();
@@ -215,12 +216,8 @@ impl fmt::Display for Aabb {
     }
 }
 
-/// Make [`AABB`]s indexable. `aabb[0]` gives a reference to the minimum bound.
+/// Make [`Aabb`]s indexable. `aabb[0]` gives a reference to the minimum bound.
 /// All other indices return a reference to the maximum bound.
-///
-///
-///
-
 impl Index<usize> for Aabb {
     type Output = Vec3;
 
@@ -237,6 +234,7 @@ impl Index<usize> for Aabb {
 mod tests {
     use crate::bvh::aabb::Aabb;
     use crate::linalg::Vec3;
+    use crate::render::Axis;
     use crate::render::Interval;
     use crate::render::Ray;
     use assert_approx_eq::assert_approx_eq;
@@ -349,7 +347,7 @@ mod tests {
 
         let largest_axis = aabb_p.largest_axis();
 
-        assert_eq!(largest_axis, 1);
+        assert_eq!(largest_axis, Axis::Y);
 
         let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
         let q: Vec3 = Vec3::new(2.0, 3.0, 5.0);
@@ -358,6 +356,6 @@ mod tests {
 
         let largest_axis = aabb_p.largest_axis();
 
-        assert_eq!(largest_axis, 2);
+        assert_eq!(largest_axis, Axis::Z);
     }
 }

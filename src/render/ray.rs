@@ -1,22 +1,32 @@
 use crate::linalg::Vec3;
+
+#[allow(unused_imports)] // for doc
+use crate::bvh::Aabb;
+
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
+    /// Origin of the ray.
     pub origin: Vec3,
+
+    /// Direction of the ray.
     pub direction: Vec3,
+
+    /// Inverse direction of the ray.
+    /// Cached for use in [`Aabb`] intersections.
     pub inv_direction: Vec3,
 
     /// Sign of the X direction. 0 means positive, 1 means negative.
-    /// Cached for use in [`AABB`] intersections.
+    /// Cached for use in [`Aabb`] intersections.
     pub sign_x: usize,
 
     /// Sign of the Y direction. 0 means positive, 1 means negative.
-    /// Cached for use in [`AABB`] intersections.
+    /// Cached for use in [`Aabb`] intersections.
     pub sign_y: usize,
 
     /// Sign of the Z direction. 0 means positive, 1 means negative.
-    /// Cached for use in [`AABB`] intersections.
+    /// Cached for use in [`Aabb`] intersections.
     pub sign_z: usize,
 }
 

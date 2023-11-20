@@ -1,5 +1,7 @@
 ![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/scott223/raytracer/rust.yml?style=flat-square&logo=github)
 [![dependency status](https://deps.rs/repo/github/scott223/raytracer/status.svg)](https://deps.rs/repo/github/scott223/raytracer)
+[![lines count](https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/scott223/raytracer/badge?filter=.ts$,.tsx$,.obj$,.json$)](https://ghloc.vercel.app/scott223/raytracer/badge?filter=.ts$,.tsx$,.obj$,.json$)
+
 
 # Raytracer
 Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.

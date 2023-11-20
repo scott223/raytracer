@@ -20,3 +20,6 @@ pub use interval::Interval;
 mod color;
 pub use color::Color;
 pub use color::Rgb;
+
+mod axis;
+pub use axis::Axis;

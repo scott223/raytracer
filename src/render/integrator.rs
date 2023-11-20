@@ -11,9 +11,8 @@ use rand::{rngs::SmallRng, SeedableRng};
 use rayon::prelude::*;
 
 use crate::{
-    bvh::BVHNode,
     bvh::BVH_SAH,
-    elements::{Element, Hittable, JSONElement},
+    elements::{Element, JSONElement},
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
     render::pdf::{HittablePDF, MixedPDF, PDFTrait, Pdf},
