@@ -27,7 +27,7 @@ impl Mat4 {
     #[inline(always)]
     pub fn transpose(d_x: f64, d_y: f64, d_z: f64) -> Mat4 {
         // TODO: return the transpose matrix!!
-       
+
         Mat4 {
             data: [
                 [1., 0., 0., d_x],
@@ -39,7 +39,7 @@ impl Mat4 {
     }
 
     /// Computes the scale matrix (around the origin)
-    /// 
+    ///
     /// Source: <https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html>
     #[inline(always)]
     pub fn scale(s_x: f64, s_y: f64, s_z: f64) -> Mat4 {
@@ -54,7 +54,7 @@ impl Mat4 {
     }
 
     /// Computes the rotation matrix (around the origin)
-    /// 
+    ///
     /// Source: <https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html>
     #[inline(always)]
     pub fn rotate_x(theta_x: f64) -> Mat4 {
@@ -69,7 +69,7 @@ impl Mat4 {
     }
 
     /// Computes the rotation matrix (around the origin)
-    /// 
+    ///
     /// Source: <https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html>
     #[inline(always)]
     pub fn rotate_y(theta_y: f64) -> Mat4 {
@@ -84,7 +84,7 @@ impl Mat4 {
     }
 
     /// Computes the rotation matrix (around the origin)
-    /// 
+    ///
     /// source: <https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html>
     #[inline(always)]
     pub fn rotate_z(theta_z: f64) -> Mat4 {
@@ -99,7 +99,7 @@ impl Mat4 {
     }
 
     /// Computes the determinant of a 4x4 matrix
-    /// 
+    ///
     /// Source: <https://docs.piston.rs/graphics/src/vecmath/lib.rs.html>
     #[inline(always)]
     #[allow(dead_code)]
@@ -133,7 +133,7 @@ impl Mat4 {
     }
 
     /// Computes the inverse determinant of a 4x4 matrix
-    /// 
+    ///
     /// Source: <https://docs.piston.rs/graphics/src/vecmath/lib.rs.html>
     #[inline(always)]
     #[allow(dead_code)]
@@ -142,7 +142,7 @@ impl Mat4 {
     }
 
     /// Computes the inverse of a 4x4 matrix.
-    /// 
+    ///
     /// Source: <https://docs.piston.rs/graphics/src/vecmath/lib.rs.html>
     #[inline(always)]
     #[allow(dead_code)]

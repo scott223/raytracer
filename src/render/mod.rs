@@ -1,5 +1,6 @@
 mod camera;
 pub use camera::Camera;
+pub use camera::JSONCamera;
 
 mod config;
 pub use config::Config;

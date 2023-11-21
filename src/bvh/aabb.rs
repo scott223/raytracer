@@ -171,7 +171,7 @@ impl Aabb {
     }
 
     /// Returns if we have a hit with the aabb, in a given interval
-    /// 
+    ///
     /// Source: <https://docs.rs/bvh/latest/src/bvh/ray.rs.html#168-188>
 
     pub fn hit(&self, ray: &Ray, _ray_t: &mut Interval) -> bool {

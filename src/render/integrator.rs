@@ -1,17 +1,17 @@
 use std::{
     error::Error,
+    fmt::Write,
     fs::File,
     io::{BufReader, BufWriter},
     path::Path,
-    time::Instant,
 };
 
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rand::{rngs::SmallRng, SeedableRng};
 use rayon::prelude::*;
 
 use crate::{
-    bvh::BVH_SAH,
+    bvh::{BVHSplitMethod, BVH_SAH},
     elements::{Element, JSONElement},
     materials::{Emmits, Reflects, Refracts, Scatterable},
     render::camera::Camera,
@@ -125,7 +125,14 @@ impl RenderIntegrator {
         // the BHVNode creator will return a Box<Hittable>, either are BHVNode (if there are more than 1 objects) or an Element
         log::info!("Creating the BVH node tree, with {} objects", objects.len());
 
-        let bvh_tree_sah = BVH_SAH::build(&objects);
+        // see if we have a split method in the config, else pick a default
+        let split_method = if self.config.bvh_split_method.is_some() {
+            self.config.bvh_split_method.unwrap()
+        } else {
+            BVHSplitMethod::Mid
+        };
+
+        let bvh_tree_sah = BVH_SAH::build(&objects, split_method);
 
         // create a refrence to the elements that are marked as an attractor
         let attractors: Vec<&Element> = objects.iter().filter(|e| e.is_attractor()).collect();
@@ -140,8 +147,18 @@ impl RenderIntegrator {
 
         // start the actual render
         log::info!("Starting render");
-        let start: Instant = Instant::now();
         let pb: ProgressBar = ProgressBar::new(self.config.img_height as u64);
+
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .unwrap()
+            .with_key("eta", |state: &ProgressState, w: &mut dyn Write| {
+                write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+            })
+            .progress_chars("#>-"),
+        );
 
         // use Rayon parallel iterator to iterate over the bands and render per line
         bands.into_par_iter().for_each(|(i, band)| {
@@ -156,7 +173,7 @@ impl RenderIntegrator {
             pb.inc(1);
         });
 
-        log::info!("Render finished in {}ms", start.elapsed().as_millis());
+        log::info!("Render finished!");
 
         // return an OK
         Ok(())
@@ -179,14 +196,14 @@ impl RenderIntegrator {
             let mut color: Color = Color::new(0.0, 0.0, 0.0);
 
             // sets a pixel to follow and print detailed logs
-            let follow_coords: [usize; 2] = [40, 120];
+            let _follow_coords: [usize; 2] = [40, 120];
 
             // loop through all the anti aliasing samples
             for i in 0..config.samples {
                 // get multiple rays for anti alliasing, and add the colors
                 let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
-                let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
-                //let follow = false;
+                //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+                let follow = false;
 
                 if follow {
                     log::info!("sample: {}", i);

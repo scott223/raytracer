@@ -1,3 +1,4 @@
+use crate::bvh::BVHSplitMethod;
 use crate::elements::{Element, HitRecord, Hittable, JSONElement};
 use crate::render::{Camera, Interval, Ray};
 use crate::{render::camera::JSONCamera, render::Color};
@@ -11,6 +12,7 @@ pub struct Config {
     pub samples: usize,
     pub max_depth: usize,
     pub sky_color: Color,
+    pub bvh_split_method: Option<BVHSplitMethod>,
 }
 
 impl Default for Config {
@@ -24,12 +26,15 @@ impl Default for Config {
 
         let sky_color = Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0);
 
+        let bvh_split_method = BVHSplitMethod::Mid;
+
         Config {
             img_width: w,
             img_height: h,
             samples: s,
             max_depth: m,
             sky_color,
+            bvh_split_method: Some(bvh_split_method),
         }
     }
 }

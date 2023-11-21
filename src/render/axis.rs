@@ -1,7 +1,9 @@
-use std::{fmt::{Display, Formatter, self}, ops::Index};
+use std::{
+    fmt::{self, Display, Formatter},
+    ops::Index,
+};
 
 use crate::linalg::Vec3;
-
 
 /// An `Axis` in a three-dimensional coordinate system.
 /// Used to access `Vec3` structs via index.

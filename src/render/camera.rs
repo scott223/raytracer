@@ -143,6 +143,7 @@ mod tests {
             samples: 1,
             max_depth: 32,
             sky_color: Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0),
+            bvh_split_method: Some(crate::bvh::BVHSplitMethod::Mid),
         };
 
         // TODO

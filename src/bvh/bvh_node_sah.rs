@@ -1,15 +1,32 @@
 use std::f64::EPSILON;
 
+use serde::{Serialize, Deserialize};
+
 use super::aabb::Aabb;
 use crate::{
     elements::*,
-    render::{Interval, Ray, Axis},
+    render::{Axis, Interval, Ray},
 };
+/// BVH split method enum
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub enum BVHSplitMethod {
+    Mid,
+    SAH,
+}
 
-// this is a node for the BHV tree, and it consists of objects with a hittable trait (either another node, or an element)
-// it will only have a left or a right object
+struct Buckets {
+    buckets: Vec<Bucket>,
+}
+
+struct Bucket {
+    interval: Interval,
+    objects: Vec<usize>,
+}
+
+/// BVH node enum
+/// 
+/// Node for the BHV tree (node or leaf), and it consists of references to objects with a hittable trait (elements)
 #[allow(non_camel_case_types)]
-
 pub enum BVHNode_SAH {
     Leaf {
         parent_index: usize,
@@ -33,6 +50,7 @@ pub enum BVHNode_SAH {
     },
 }
 
+/// BVH tree struct
 #[allow(non_camel_case_types)]
 pub struct BVH_SAH<'a> {
     /// The list of nodes of the BVH.
@@ -41,7 +59,9 @@ pub struct BVH_SAH<'a> {
 }
 
 impl BVH_SAH<'_> {
-    pub fn build(objects: &Vec<Element>) -> BVH_SAH {
+
+    /// Build a tree of the BVH nodes, with a reference to the objects.
+    pub fn build(objects: &Vec<Element>, split_method: BVHSplitMethod) -> BVH_SAH {
         // get a vec for all the indices
         let indices = (0..objects.len()).collect::<Vec<usize>>();
 
@@ -49,7 +69,7 @@ impl BVH_SAH<'_> {
         let mut nodes = Vec::with_capacity(objects.len() * 2);
 
         // start with the first node, and build from there
-        BVHNode_SAH::build(objects, &indices, &mut nodes, 0, 0);
+        BVHNode_SAH::build(objects, &indices, &mut nodes, 0, 0, &split_method);
 
         // return the tree, with a reference to the objects (needed for the hits)
         BVH_SAH {
@@ -164,6 +184,7 @@ impl BVHNode_SAH {
         nodes: &mut Vec<BVHNode_SAH>,
         parent_index: usize,
         depth: u32,
+        split_method: &BVHSplitMethod,
     ) -> usize {
         match indices.len() {
             0 => 0,
@@ -236,7 +257,6 @@ impl BVHNode_SAH {
                 );
 
                 //loop trough all the indices, and expand the bounding box wit the the new cntroid
-
                 for index in indices {
                     aabb_centroids = Aabb::new_from_aabbs(
                         aabb_centroids,
@@ -250,7 +270,8 @@ impl BVHNode_SAH {
 
                 // find the longest axis, to decide how to sort
                 let sort_axis: Axis = aabb_centroids.largest_axis();
-                let sort_axis_size: f64 = aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis];
+                let sort_axis_size: f64 =
+                    aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis];
 
                 if sort_axis_size < EPSILON {
                     // axis is too small, lets just divide into 2
@@ -265,23 +286,60 @@ impl BVHNode_SAH {
                             child_r_indices.push(*index);
                         }
                     }
+
                 } else {
-                    //axis is big enough to split
-                    // TODO here we need to add the SAH logic!
 
-                    let splitpoint = aabb_centroids.min[sort_axis] + sort_axis_size / 2.0;
-                    log::trace!("size: {}, splitpoint {}", sort_axis_size, splitpoint);
+                    // axis is big enough to split
 
-                    for index in indices {
-                        log::trace!(
-                            "point {}",
-                            objects[*index].bounding_box().centroid[sort_axis]
-                        );
+                    match split_method {
+                        BVHSplitMethod::Mid => {
 
-                        if objects[*index].bounding_box().centroid[sort_axis] < splitpoint {
-                            child_l_indices.push(*index);
-                        } else {
-                            child_r_indices.push(*index);
+                            let splitpoint = aabb_centroids.min[sort_axis] + sort_axis_size / 2.0;
+                            log::trace!("size: {}, splitpoint {}", sort_axis_size, splitpoint);
+
+                            for index in indices {
+                                log::trace!(
+                                    "point {}",
+                                    objects[*index].bounding_box().centroid[sort_axis]
+                                );
+
+                                if objects[*index].bounding_box().centroid[sort_axis] < splitpoint {
+                                    child_l_indices.push(*index);
+                                } else {
+                                    child_r_indices.push(*index);
+                                }
+                            }
+                        },
+                        BVHSplitMethod::SAH => {
+
+                            // define the number of buckets and define the size of one bucket
+                            const NUM_BUCKETS: usize = 6;
+                            let mut bucket_vec: Vec<Bucket> = Vec::with_capacity(NUM_BUCKETS);
+                            let bucket_size: f64 = sort_axis_size / NUM_BUCKETS as f64;
+
+
+                            // create the buckets, with the right interval
+                            for i in 1..NUM_BUCKETS+1 {
+                                bucket_vec.push(Bucket { 
+                                    interval: Interval::new(((i-1) as f64)*bucket_size, i as f64 *bucket_size), 
+                                    objects: Vec::new() 
+                                });
+                            }
+
+                            // walk through each object, and check if its within the interval of each bucket
+                            for index in indices {
+                                for b in &mut bucket_vec {
+                                    if b.interval.contains(objects[*index].bounding_box().centroid()[sort_axis]) {
+                                        b.objects.push(*index);
+                                    }
+                                }
+                            }
+
+                            // add it to the bucket struct, so we can apply the split method
+                            let mut buckets: Buckets = Buckets { buckets: bucket_vec };
+
+                            // TODO find the cost of each bucket, and split into two buckets
+
                         }
                     }
                 }
@@ -293,10 +351,23 @@ impl BVHNode_SAH {
                 );
 
                 // build the left and right side nodes, and get the index back
-                let child_l_index =
-                    BVHNode_SAH::build(objects, &child_l_indices, nodes, node_index, depth + 1);
-                let child_r_index =
-                    BVHNode_SAH::build(objects, &child_r_indices, nodes, node_index, depth + 1);
+                let child_l_index = BVHNode_SAH::build(
+                    objects,
+                    &child_l_indices,
+                    nodes,
+                    node_index,
+                    depth + 1,
+                    split_method,
+                );
+
+                let child_r_index = BVHNode_SAH::build(
+                    objects,
+                    &child_r_indices,
+                    nodes,
+                    node_index,
+                    depth + 1,
+                    split_method,
+                );
 
                 // get the bounding boxes of all the underlying objects (this we could likely do smarter)
                 let child_l_aabb = Aabb::new_from_objects(objects, &child_l_indices);
@@ -314,7 +385,7 @@ impl BVHNode_SAH {
 
                 // return the node index
                 node_index
-            }
-        }
-    }
-}
+            } 
+        } 
+    } 
+}// impl BVHNode_SAH
