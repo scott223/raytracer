@@ -100,11 +100,7 @@ impl Quad {
 
     // returns true if self.attractor is set to true
     pub fn is_attractor(&self) -> bool {
-        if let Some(true) = self.attractor {
-            true
-        } else {
-            false
-        }
+        matches!(self.attractor, Some(true))
     }
 }
 

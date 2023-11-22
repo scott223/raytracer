@@ -60,7 +60,7 @@ impl RenderIntegrator {
         // Read the JSON contents of the file as an instance of `Config`.
         let config: Config = serde_json::from_reader(config_reader)?;
 
-        return Ok(RenderIntegrator::new(scene, config));
+        Ok(RenderIntegrator::new(scene, config))
     }
 
     pub fn save_to_png(&self, png_path: &str) -> Result<(), Box<dyn Error>> {
@@ -267,7 +267,7 @@ impl RenderIntegrator {
                 if let Some(scatter) = hit.material.scatter(ray, &hit, rng) {
                     // generate the direction for the new scattered ray based on the PDF
                     // check if there are attractors, else just use the scatter pdf
-                    let (scattered_ray, pdf_val) = if attractors.len() > 0 {
+                    let (scattered_ray, pdf_val) = if !attractors.is_empty() {
                         let hittable_pdf =
                             Pdf::HittablePDF(HittablePDF::new(hit.point, attractors));
                         let mixed_pdf = Pdf::MixedPDF(MixedPDF::new(

@@ -96,16 +96,26 @@ impl Aabb {
         bbox
     }
 
-    pub fn new_from_objects(objects: &Vec<Element>, indices: &Vec<usize>) -> Self {
+    pub fn new_from_objects(objects: &[Element], indices: &Vec<usize>) -> Self {
         // start met bbox from first element
+
         let mut bbox = objects[indices[0]].bounding_box();
 
-        // walk through each object and add the bounding box
-        for index in indices {
-            bbox = Aabb::new_from_aabbs(bbox, objects[*index].bounding_box());
+        if indices.len() > 1 {
+            // walk through each object and add the bounding box
+            for index in indices {
+                bbox = Aabb::new_from_aabbs(bbox, objects[*index].bounding_box());
+            }
         }
 
-        return bbox;
+        bbox
+    }
+
+    /// Returns the surface area of this Aabb
+    pub fn area(&self) -> f64 {
+        (self.max.x() - self.min.x()) * (self.max.y() - self.min.y())
+            + (self.max.y() - self.min.y()) * (self.max.z() - self.min.z())
+            + (self.max.z() - self.min.z()) * (self.max.x() - self.min.x())
     }
 
     /// Returns an AABB that has no side narrower than some delta, padding if necessary.
@@ -194,7 +204,7 @@ impl Aabb {
     }
 
     #[inline(always)]
-    pub fn grow<T: Hittable>(mut self, b: T) {
+    pub fn grow<T: Hittable>(mut self, b: &T) {
         self.x = Interval::new_from_intervals(self.x, b.bounding_box().x);
         self.y = Interval::new_from_intervals(self.y, b.bounding_box().y);
         self.z = Interval::new_from_intervals(self.z, b.bounding_box().z);
@@ -357,5 +367,26 @@ mod tests {
         let largest_axis = aabb_p.largest_axis();
 
         assert_eq!(largest_axis, Axis::Z);
+    }
+
+    #[test_log::test]
+    fn test_surface_area() {
+        let p: Vec3 = Vec3::new(1.0, 1.0, 1.0);
+        let q: Vec3 = Vec3::new(2.0, 3.0, 2.0);
+
+        let aabb: Aabb = Aabb::new_from_points(p, q);
+
+        let area = aabb.area();
+
+        assert_eq!(area, (1.*2.)+(2.*1.)+(1.*1.));
+
+        let p: Vec3 = Vec3::new(-2.0, 1.0, -2.0);
+        let q: Vec3 = Vec3::new(2.0, 5.0, 2.0);
+
+        let aabb: Aabb = Aabb::new_from_points(p, q);
+
+        let area = aabb.area();
+
+        assert_eq!(area, (4.*4.)+(4.*4.)+(4.*4.));
     }
 }

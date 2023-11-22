@@ -83,11 +83,7 @@ impl Sphere {
     }
 
     pub fn is_attractor(&self) -> bool {
-        if let Some(true) = self.attractor {
-            true
-        } else {
-            false
-        }
+        matches!(self.attractor, Some(true))
     }
 }
 
@@ -194,5 +190,5 @@ pub fn random_to_sphere(radius: f64, distance_squared: f64, rng: &mut SmallRng) 
     let x: f64 = phi.cos() * (1.0 - z * z).sqrt();
     let y: f64 = phi.sin() * (1.0 - z * z).sqrt();
 
-    return Vec3::new(x, y, z);
+    Vec3::new(x, y, z)
 }

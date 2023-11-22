@@ -48,15 +48,20 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     //group.bench_function("TM", | b | b.iter(|| t.hit_tm(&r, &mut i)));
     group.finish();
 
-    let config: Config = Config { img_width: 300., img_height: 300., samples: 4, max_depth: 8, sky_color: Color::new(0.5, 0.5, 0.5), bvh_split_method: Some(BVHSplitMethod::Mid), };
-    let json_camera: JSONCamera = JSONCamera { camera_center: Vec3::new(278., 278., -800.), camera_look_at: Vec3::new(278., 278., 0.), camera_fov_vertical: 40., camera_defocus_angle: 0., camera_focus_dist: 800. };
-    
-    let dragon = JSONElement::JSONObj(JSONObj{
+    let json_camera: JSONCamera = JSONCamera {
+        camera_center: Vec3::new(278., 278., -800.),
+        camera_look_at: Vec3::new(278., 278., 0.),
+        camera_fov_vertical: 40.,
+        camera_defocus_angle: 0.,
+        camera_focus_dist: 800.,
+    };
+
+    let dragon = JSONElement::JSONObj(JSONObj {
         filepath: "input/obj/dragon.obj".to_string(),
         transpose: Some(Transpose {
             x: 220.,
             y: 0.,
-            z: 200.
+            z: 200.,
         }),
         rotate: Some(Rotate {
             theta_x: 0.,
@@ -68,28 +73,45 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             y: 20.,
             z: 20.,
         }),
-        material: raytracer::materials::Material::Lambertian(Lambertian::new(Color::new(0.7, 0.7, 0.7))),
+        material: raytracer::materials::Material::Lambertian(Lambertian::new(Color::new(
+            0.7, 0.7, 0.7,
+        ))),
     });
 
     let mut elements: Vec<JSONElement> = Vec::new();
     elements.push(dragon);
 
-    let json_scene: JSONScene = JSONScene { 
-        camera: json_camera, 
+    let json_scene: JSONScene = JSONScene {
+        camera: json_camera,
         elements,
     };
 
-    let mut r = RenderIntegrator::new(json_scene, config);
+    let config_mid: Config = Config {
+        img_width: 300.,
+        img_height: 300.,
+        samples: 4,
+        max_depth: 8,
+        sky_color: Color::new(0.5, 0.5, 0.5),
+        bvh_split_method: Some(BVHSplitMethod::Mid),
+    };
 
-    let mut group = c.benchmark_group("Render test");
-    group.bench_function("Mid split", |b| {
-        b.iter(|| {
-            r.render()
-        })
-    });
+    let config_sah: Config = Config {
+        img_width: 300.,
+        img_height: 300.,
+        samples: 4,
+        max_depth: 8,
+        sky_color: Color::new(0.5, 0.5, 0.5),
+        bvh_split_method: Some(BVHSplitMethod::SAH),
+    };
 
+
+    let mut r_mid = RenderIntegrator::new(json_scene.clone(), config_mid);
+    let mut r_sah = RenderIntegrator::new(json_scene, config_sah);
+
+    let mut group = c.benchmark_group("Render");
+    group.bench_function("Mid split", |b| b.iter(|| r_mid.render()));
+    group.bench_function("SAH split", |b| b.iter(|| r_sah.render()));
     group.finish();
-
 }
 
 criterion_group!(benches, criterion_benchmark);

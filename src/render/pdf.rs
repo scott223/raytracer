@@ -79,8 +79,8 @@ impl MixedPDF<'_> {
         MixedPDF {
             origin,
             ratio,
-            p1: p1,
-            p2: p2,
+            p1,
+            p2,
         }
     }
 }

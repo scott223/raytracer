@@ -28,7 +28,7 @@ impl JSONObj {
         //todo ERROR
         //let input = BufReader::new(File::open(self.filepath).unwrap());
 
-        let mut f = File::open(self.filepath.to_owned()).unwrap();
+        let mut f = File::open(&self.filepath).unwrap();
         let mut s = String::new();
         let _ = f.read_to_string(&mut s);
 
@@ -43,7 +43,7 @@ impl JSONObj {
                 .iter()
                 .for_each(|v| vertices.push(Vec3::new(v.x, v.y, v.z)));
 
-            //TODO move the scaling, rotation and transpose to a seperate functio
+            // TODO move the scaling, rotation and transpose to a seperate functio
             // apply the scaling as per the scaling transformation input from the JSON
             if let Some(s) = self.scale {
                 let tm_scale = Mat4::scale(s.x, s.y, s.z);
@@ -80,18 +80,15 @@ impl JSONObj {
             for geometry in object.geometry {
                 log::trace!("Loaded {} shapes", geometry.shapes.len());
                 for shape in geometry.shapes {
-                    match shape.primitive {
-                        wavefront_obj::obj::Primitive::Triangle(a, b, c) => {
-                            let triangle = Element::Triangle(Triangle::new(
-                                Vec3::new(vertices[a.0].x(), vertices[a.0].y(), vertices[a.0].z()),
-                                Vec3::new(vertices[b.0].x(), vertices[b.0].y(), vertices[b.0].z()),
-                                Vec3::new(vertices[c.0].x(), vertices[c.0].y(), vertices[c.0].z()),
-                                self.material,
-                            ));
+                    if let wavefront_obj::obj::Primitive::Triangle(a, b, c) = shape.primitive {
+                        let triangle = Element::Triangle(Triangle::new(
+                            Vec3::new(vertices[a.0].x(), vertices[a.0].y(), vertices[a.0].z()),
+                            Vec3::new(vertices[b.0].x(), vertices[b.0].y(), vertices[b.0].z()),
+                            Vec3::new(vertices[c.0].x(), vertices[c.0].y(), vertices[c.0].z()),
+                            self.material,
+                        ));
 
-                            objects.push(triangle);
-                        }
-                        _ => {}
+                        objects.push(triangle);
                     }
                 }
             }

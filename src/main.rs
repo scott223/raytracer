@@ -1,6 +1,3 @@
-use dotenv;
-use std::env;
-
 use raytracer::render::RenderIntegrator;
 
 // App main function
@@ -11,7 +8,7 @@ fn main() {
 
     log::info!(
         "Program started: loading scene and config from JSON files located in /input and render will be located in /render. Current directory is {:?}",
-        env::current_dir().unwrap()
+        std::env::current_dir().unwrap()
     );
 
     //load the JSON into the integrator
@@ -43,20 +40,38 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use raytracer::{render::{Config, Color, JSONScene, JSONCamera, RenderIntegrator}, elements::{JSONElement, JSONObj, Transpose, Scale, Rotate}, materials::Lambertian, linalg::Vec3, bvh::BVHSplitMethod};
-
+    use raytracer::{
+        bvh::BVHSplitMethod,
+        elements::{JSONElement, JSONObj, Rotate, Scale, Transpose},
+        linalg::Vec3,
+        materials::Lambertian,
+        render::{Color, Config, JSONCamera, JSONScene, RenderIntegrator},
+    };
 
     #[test_log::test]
     fn render() {
-        let config: Config = Config { img_width: 600., img_height: 600., samples: 8, max_depth: 8, sky_color: Color::new(0.5, 0.5, 0.5), bvh_split_method: Some(BVHSplitMethod::Mid), };
-        let json_camera: JSONCamera = JSONCamera { camera_center: Vec3::new(278., 278., -800.), camera_look_at: Vec3::new(278., 278., 0.), camera_fov_vertical: 40., camera_defocus_angle: 0., camera_focus_dist: 800. };
-        
-        let dragon = JSONElement::JSONObj(JSONObj{
+        let config: Config = Config {
+            img_width: 600.,
+            img_height: 600.,
+            samples: 8,
+            max_depth: 8,
+            sky_color: Color::new(0.5, 0.5, 0.5),
+            bvh_split_method: Some(BVHSplitMethod::Mid),
+        };
+        let json_camera: JSONCamera = JSONCamera {
+            camera_center: Vec3::new(278., 278., -800.),
+            camera_look_at: Vec3::new(278., 278., 0.),
+            camera_fov_vertical: 40.,
+            camera_defocus_angle: 0.,
+            camera_focus_dist: 800.,
+        };
+
+        let dragon = JSONElement::JSONObj(JSONObj {
             filepath: "input/obj/dragon.obj".to_string(),
             transpose: Some(Transpose {
                 x: 220.,
                 y: 0.,
-                z: 200.
+                z: 200.,
             }),
             rotate: Some(Rotate {
                 theta_x: 0.,
@@ -68,14 +83,16 @@ mod tests {
                 y: 20.,
                 z: 20.,
             }),
-            material: raytracer::materials::Material::Lambertian(Lambertian::new(Color::new(0.7, 0.7, 0.7))),
+            material: raytracer::materials::Material::Lambertian(Lambertian::new(Color::new(
+                0.7, 0.7, 0.7,
+            ))),
         });
 
         let mut elements: Vec<JSONElement> = Vec::new();
         elements.push(dragon);
 
-        let json_scene: JSONScene = JSONScene { 
-            camera: json_camera, 
+        let json_scene: JSONScene = JSONScene {
+            camera: json_camera,
             elements,
         };
 
@@ -86,7 +103,5 @@ mod tests {
             Ok(_) => assert!(true),
             Err(_) => assert!(false, "error in render"),
         }
-        
     }
-
 }

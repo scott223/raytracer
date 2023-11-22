@@ -73,7 +73,7 @@ impl Camera {
         let defocus_disk_u: Vec3 = u * defocus_radius;
         let defocus_disk_v: Vec3 = v * defocus_radius;
 
-        let c = Camera {
+        Camera {
             relative_up,
             look_at,
             focus_dist,
@@ -87,9 +87,7 @@ impl Camera {
             pixel_delta_u,
             pixel_delta_v,
             pixel00_loc,
-        };
-
-        c
+        }
     }
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from

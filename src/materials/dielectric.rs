@@ -51,7 +51,7 @@ impl Refracts for Dielectric {
                 attenuation: albedo,
                 ray: reflected_ray,
             };
-            return Some(refract_record);
+            Some(refract_record)
         } else {
             let direction: Vec3 =
                 super::metal::refract_ray(&unit_direction, &hit_record.normal, refraction_ratio);
@@ -60,7 +60,7 @@ impl Refracts for Dielectric {
                 attenuation: albedo,
                 ray: refracted_ray,
             };
-            return Some(refract_record);
+            Some(refract_record)
         }
     }
 }

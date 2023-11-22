@@ -1,41 +1,129 @@
 use std::f64::EPSILON;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::aabb::Aabb;
 use crate::{
     elements::*,
     render::{Axis, Interval, Ray},
 };
+
 /// BVH split method enum
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum BVHSplitMethod {
+    /// Mid split, just dividing the number of indices by 2
     Mid,
+
+    /// Use the Surface Area Heuristic to divide the indices based on the lowest cost
     SAH,
 }
 
+/// BVH buckets struct
+#[derive(Debug, Clone)]
 struct Buckets {
+    /// Buckets with indices
     buckets: Vec<Bucket>,
 }
 
-struct Bucket {
-    interval: Interval,
-    objects: Vec<usize>,
+impl Buckets {
+
+    /// Returns two vectors with indices split at the plane, taking into account the cost based on Surface Area Heuristic
+    pub fn split_objects(&mut self, objects: &Vec<Element>) -> (Vec<usize>, Vec<usize>) {
+
+        let mut best_split: usize = 0;
+        let mut best_cost: f64 = f64::INFINITY;
+
+        // walk through the different split planes
+        for split in 1..self.buckets.len() {
+
+            let (mut left_area, mut left_count, mut right_area, mut right_count) = (0.0, 0.0, 0.0, 0.0);
+            
+            // walk through the buckets
+            for i in 0..self.buckets.len() {
+                // walk through the indices in the bucket, and assing to left or right side
+                if !self.buckets[i].indices.is_empty() {
+                    if i < split {
+                        left_area += self.buckets[i].bounding_box(objects).area();
+                        left_count += self.buckets[i].indices.len() as f64;
+                    } else {
+                        right_area += self.buckets[i].bounding_box(objects).area();
+                        right_count += self.buckets[i].indices.len() as f64;
+                    }
+                }
+            }
+
+            // calcualte the plane splitting costs
+            let plane_split_cost = left_area * left_count + right_area * right_count;
+
+            // if this is the cheapest split so far, mark it as the best cost
+            if plane_split_cost < best_cost {
+                best_split = split;
+                best_cost = plane_split_cost;
+            }
+            
+        }
+
+        // set up the vertices for the left and right indices
+        let mut left_indices = Vec::new();
+        let mut right_indices = Vec::new();
+
+        // walk through the buckets and extend left/right indice vectors with the indices of that bucket
+        for i in 0..self.buckets.len() {
+            if i < best_split {
+                left_indices.extend(self.buckets[i].indices.clone());
+            } else {
+                right_indices.extend(self.buckets[i].indices.clone());
+            }
+        }
+
+        // return the indices
+        (left_indices, right_indices)
+    }
 }
 
-/// BVH node enum
-/// 
-/// Node for the BHV tree (node or leaf), and it consists of references to objects with a hittable trait (elements)
+/// BVH single bucket struct
+#[derive(Debug, Clone)]
+struct Bucket {
+    /// Interval for the centroids of the elements in this buckt
+    interval: Interval,
+
+    /// Indices of the objects that are part of this bucket
+    indices: Vec<usize>,
+}
+
+impl Bucket {
+
+    /// Returns the bounding box for this bucket
+    pub fn bounding_box(&mut self, objects: &[Element])-> Aabb {
+        
+        // check if there are indices assigned to this bucket
+        assert!(!self.indices.is_empty());
+
+        // return the bounding box for the objects assigned to this bucket 
+        Aabb::new_from_objects(objects, &self.indices)
+    }
+}
+
+/// BVH Node for the BHV tree (node or leaf), and it consists of references to objects with a hittable trait (elements)
 #[allow(non_camel_case_types)]
 pub enum BVHNode_SAH {
     Leaf {
+        /// Index of the parent node
         parent_index: usize,
+
+        /// Depth of the current node
         depth: u32,
+
+        /// Index of the underlying element
         element_index: usize,
     },
     Node {
+        /// Index of the parent node
         parent_index: usize,
+
+        /// Depth of the current node
         depth: u32,
+
         /// Index of the left subtree's root node.
         child_l_index: usize,
 
@@ -55,11 +143,12 @@ pub enum BVHNode_SAH {
 pub struct BVH_SAH<'a> {
     /// The list of nodes of the BVH.
     pub nodes: Vec<BVHNode_SAH>,
+
+    /// Reference to all the objects
     pub objects: &'a Vec<Element>,
 }
 
 impl BVH_SAH<'_> {
-
     /// Build a tree of the BVH nodes, with a reference to the objects.
     pub fn build(objects: &Vec<Element>, split_method: BVHSplitMethod) -> BVH_SAH {
         // get a vec for all the indices
@@ -74,10 +163,11 @@ impl BVH_SAH<'_> {
         // return the tree, with a reference to the objects (needed for the hits)
         BVH_SAH {
             nodes,
-            objects: &objects,
+            objects,
         }
     }
 
+    /// Get a hit from the BVH tree, this starts at the first node.
     pub fn hit(&self, ray: &Ray, ray_t: &mut Interval, follow: bool) -> Option<HitRecord> {
         // start at the top node, and do the hit there. this will recursively go down
         self.nodes[0].hit(self.objects, &self.nodes, ray, ray_t, follow)
@@ -95,70 +185,66 @@ impl BVHNode_SAH {
         }
     }
 
+    /// Return a hitrecord for this node (this will go down recursively)
     pub fn hit(
         &self,
         objects: &Vec<Element>,
         nodes: &Vec<BVHNode_SAH>,
         ray: &Ray,
         ray_t: &mut Interval,
-        follow: bool,
+        _follow: bool,
     ) -> Option<HitRecord> {
-        match self {
-            &BVHNode_SAH::Leaf {
+        match *self {
+            BVHNode_SAH::Leaf {
                 parent_index: _self_parent_index,
                 depth: _self_depth,
                 element_index: self_element_index,
             } => {
+                
                 // we made it all the way to the leaf, so we do the hit with the actual element
-                return objects[self_element_index].hit(ray, ray_t);
+                objects[self_element_index].hit(ray, ray_t)
             }
-            &BVHNode_SAH::Node {
+            BVHNode_SAH::Node {
                 parent_index: _self_parent_index,
                 depth: _self_depth,
-                /// Index of the left subtree's root node.
-                    child_l_index: self_child_l_index,
-
-                /// The aabb of the left element.
-                    child_l_aabb: self_child_l_aabb,
-
-                /// Index of the right subtree's root node.
-                    child_r_index: self_child_r_index,
-
-                /// The aabb of the left element.
-                    child_r_aabb: self_child_r_aabb,
+                child_l_index: self_child_l_index,
+                child_l_aabb: self_child_l_aabb,
+                child_r_index: self_child_r_index,
+                child_r_aabb: self_child_r_aabb,
             } => {
+                
                 // check for a hit in the left aabb first
-
                 if self_child_l_aabb.hit(ray, ray_t) {
+                    
                     //check a hit in the following node
-
                     let left_hit: Option<HitRecord> =
-                        nodes[self_child_l_index].hit(objects, nodes, ray, ray_t, follow);
+                        nodes[self_child_l_index].hit(objects, nodes, ray, ray_t, _follow);
 
                     match left_hit {
                         Some(lh) => {
                             ray_t.interval_max = lh.t;
 
                             let right_hit: Option<HitRecord> =
-                                nodes[self_child_r_index].hit(objects, nodes, ray, ray_t, follow);
+                                nodes[self_child_r_index].hit(objects, nodes, ray, ray_t, _follow);
 
                             match right_hit {
                                 Some(rh) => {
                                     // we have a closer hit on the right, so return the right hit
-                                    return Some(rh);
+                                    Some(rh)
                                 }
                                 _ => {
                                     // there is no closer hit on the right, so return the left hit
-                                    return Some(lh);
+                                    Some(lh)
                                 }
                             }
                         }
                         _ => {
                             // no hit on the left side, so lets try the right with the unmodified interval ray_t
                             // this function returns Some(rh) if a hit is found, and None if no hit is found
+
                             if self_child_r_aabb.hit(ray, ray_t) {
-                                return nodes[self_child_r_index]
-                                    .hit(objects, nodes, ray, ray_t, follow);
+                                nodes[self_child_r_index]
+                                    .hit(objects, nodes, ray, ray_t, _follow)
                             } else {
                                 None
                             }
@@ -169,7 +255,8 @@ impl BVHNode_SAH {
                     // first the AABB, and then a hit with the node
 
                     if self_child_r_aabb.hit(ray, ray_t) {
-                        return nodes[self_child_r_index].hit(objects, nodes, ray, ray_t, follow);
+                        // return the node hit
+                        nodes[self_child_r_index].hit(objects, nodes, ray, ray_t, _follow)
                     } else {
                         None
                     }
@@ -178,6 +265,7 @@ impl BVHNode_SAH {
         }
     }
 
+    /// Build a new node for the tree
     pub fn build(
         objects: &Vec<Element>,
         indices: &[usize],
@@ -203,7 +291,7 @@ impl BVHNode_SAH {
                 });
 
                 // return the number of the node index
-                return node_index;
+                node_index
             }
             2 => {
                 // we have two elements, so get the indices of the two elements
@@ -242,7 +330,7 @@ impl BVHNode_SAH {
                 });
 
                 // return the index of the root node
-                return node_index;
+                node_index
             }
             _ => {
                 // From here on we handle the recursive case. This dummy is required, because the children
@@ -274,9 +362,8 @@ impl BVHNode_SAH {
                     aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis];
 
                 if sort_axis_size < EPSILON {
-                    // axis is too small, lets just divide into 2
-
-                    let mid: usize = indices.len() / 2 as usize;
+                    // axis is not large enough, lets just divide into 2
+                    let mid: usize = indices.len() / 2_usize;
 
                     // TODO: write this one more idiomatic...
                     for (i, index) in indices.iter().enumerate() {
@@ -286,14 +373,11 @@ impl BVHNode_SAH {
                             child_r_indices.push(*index);
                         }
                     }
-
                 } else {
-
-                    // axis is big enough to split
-
+                    
+                    // axis is large enough to split
                     match split_method {
                         BVHSplitMethod::Mid => {
-
                             let splitpoint = aabb_centroids.min[sort_axis] + sort_axis_size / 2.0;
                             log::trace!("size: {}, splitpoint {}", sort_axis_size, splitpoint);
 
@@ -309,37 +393,46 @@ impl BVHNode_SAH {
                                     child_r_indices.push(*index);
                                 }
                             }
-                        },
+                        }
                         BVHSplitMethod::SAH => {
-
                             // define the number of buckets and define the size of one bucket
-                            const NUM_BUCKETS: usize = 6;
+                            const NUM_BUCKETS: usize = 12;
                             let mut bucket_vec: Vec<Bucket> = Vec::with_capacity(NUM_BUCKETS);
                             let bucket_size: f64 = sort_axis_size / NUM_BUCKETS as f64;
 
-
                             // create the buckets, with the right interval
-                            for i in 1..NUM_BUCKETS+1 {
-                                bucket_vec.push(Bucket { 
-                                    interval: Interval::new(((i-1) as f64)*bucket_size, i as f64 *bucket_size), 
-                                    objects: Vec::new() 
+                            for i in 1..NUM_BUCKETS + 1 {
+                                
+                                bucket_vec.push(Bucket {
+                                    //set the interval for the bucket, starting at the min of the centroid Aabb
+                                    interval: Interval::new(
+                                        aabb_centroids.min[sort_axis] + 
+                                            ((i - 1) as f64) * bucket_size,
+                                        aabb_centroids.min[sort_axis] + (i as f64 * bucket_size),
+                                    ),
+                                    indices: Vec::new(),
                                 });
                             }
 
                             // walk through each object, and check if its within the interval of each bucket
                             for index in indices {
                                 for b in &mut bucket_vec {
-                                    if b.interval.contains(objects[*index].bounding_box().centroid()[sort_axis]) {
-                                        b.objects.push(*index);
+                                    // check if this object is in the interval of this bucket
+                                    if b.interval.contains(
+                                        objects[*index].bounding_box().centroid()[sort_axis],
+                                    ) {
+                                        //add the elment to the bucket (this will also expand the bucket bounding box)
+                                        b.indices.push(*index);
                                     }
                                 }
                             }
 
                             // add it to the bucket struct, so we can apply the split method
-                            let mut buckets: Buckets = Buckets { buckets: bucket_vec };
+                            let mut buckets: Buckets = Buckets {
+                                buckets: bucket_vec,
+                            };
 
-                            // TODO find the cost of each bucket, and split into two buckets
-
+                            (child_l_indices, child_r_indices) = buckets.split_objects(objects);
                         }
                     }
                 }
@@ -385,7 +478,7 @@ impl BVHNode_SAH {
 
                 // return the node index
                 node_index
-            } 
-        } 
-    } 
-}// impl BVHNode_SAH
+            }
+        }
+    }
+} // impl BVHNode_SAH

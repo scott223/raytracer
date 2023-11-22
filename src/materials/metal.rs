@@ -39,7 +39,7 @@ impl Reflects for Metal {
                 ray: Some(reflected),
             };
 
-            return Some(reflect_record);
+            Some(reflect_record)
         } else {
             // return no ray, as the ray is absorbed by the material (due to fuzz factor)
             let reflect_record = ReflectRecord {
@@ -47,7 +47,7 @@ impl Reflects for Metal {
                 ray: None,
             };
 
-            return Some(reflect_record);
+            Some(reflect_record)
         }
     }
 }
