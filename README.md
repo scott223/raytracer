@@ -7,12 +7,12 @@
 Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.
 
 ## Ray tracing features
-- monte carlo based, pixel by pixel raytracing with stochastic anti aliasing
-- weigthed importance sampling
+- Monte Xarlo based, pixel by pixel raytracer with anti aliasing using Sobol sequence and specific filter algorithm
+- weigthed importance sampling using Probability Distribution Functions and attractors (e.g. lights)
 - various primitives (triangle, quad, sphere)
 - various materials (Lambertian, Metal, Glass, ...)
-- Bounded Hierarchy Volumes (BHV) tree to accelerate intersection tracing
-- parallel multi-threaded rendering
+- Bounded Hierarchy Volumes (BHV) tree, constructed using Surface Area Heuristic (SAH), to accelerate intersection tracing
+- parallel multi-threaded rendering using Rayon
 - shadow acne prevention
 - gamma correction
 - configurable depth of focus
@@ -20,7 +20,23 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 - ...
 
 ## todo's
-- jittering sampling
+- adaptive sampling
+- BRDF materials
+
+## Rust learnings applied
+- modules, imports, external crates
+- borrow, explicit lifetimes
+- custom types
+- methods, enums, structs
+- generic methods
+- Traits
+- iterators, match statement
+- Result, Error, Option
+- reading files, saving files
+- logging, .env
+- tests, benchmarking, flamegraph
+- VSCode debugger, breakpoints and memory inspector
+- Git(hub)
 
 ## Credits / references
 - Raytracing in One Weekend (https://raytracing.github.io/books/RayTracingInOneWeekend.html)
