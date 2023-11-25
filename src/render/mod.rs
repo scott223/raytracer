@@ -24,3 +24,6 @@ pub use color::Rgb;
 
 mod axis;
 pub use axis::Axis;
+
+mod filter;
+pub use filter::Filter::MitchellNetravali;

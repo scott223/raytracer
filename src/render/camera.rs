@@ -92,22 +92,22 @@ impl Camera {
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from
     // the camera defocus disk.
-    pub fn get_prime_ray(self, x: i64, y: i64, rng: &mut impl Rng) -> Ray {
+    pub fn get_prime_ray(self, x: usize, y: usize, rng: &mut impl Rng, sample_position: Vec<f64>) -> Ray {
         // get a random point in the camera defocus disk to be used as an origin, or the camera center if the defocus angle <= 0 (this is for focus blur)
-        let p: Vec3 = Vec3::new_random_in_unit_disk(rng);
-        let disk_sample: Vec3 =
-            self.camera_center + (self.defocus_disk_u * p.x()) + (self.defocus_disk_v * p.y());
+
         let ray_origin: Vec3 = if self.defocus_angle <= 0.0 {
             self.camera_center
         } else {
+            let p: Vec3 = Vec3::new_random_in_unit_disk(rng);
+            let disk_sample: Vec3 =
+                self.camera_center + (self.defocus_disk_u * p.x()) + (self.defocus_disk_v * p.y());
             disk_sample
         };
-        //println!("origin {:?}", ray_origin);
 
         // establish the the direction of the ray by taking a random sample from the square around the pixel center (this is for anti aliasing)
         let pixel_loc: Vec3 =
             self.pixel00_loc + (self.pixel_delta_u * x as f64) + (self.pixel_delta_v * y as f64);
-        let pixel_sample: Vec3 = pixel_loc + self.pixel_sample_square(rng);
+        let pixel_sample: Vec3 = pixel_loc + Vec3::new(sample_position[0], sample_position[1], 0.);
         let ray_direction: Vec3 = pixel_sample - ray_origin;
 
         Ray::new(ray_origin, ray_direction)
@@ -141,6 +141,7 @@ mod tests {
             samples: 1,
             max_depth: 32,
             sky_color: Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0),
+            pixel_radius: 2.0,
             bvh_split_method: Some(crate::bvh::BVHSplitMethod::Mid),
         };
 

@@ -92,6 +92,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         samples: 4,
         max_depth: 8,
         sky_color: Color::new(0.5, 0.5, 0.5),
+        pixel_radius: 2.0,
         bvh_split_method: Some(BVHSplitMethod::Mid),
     };
 
@@ -101,6 +102,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         samples: 4,
         max_depth: 8,
         sky_color: Color::new(0.5, 0.5, 0.5),
+        pixel_radius: 2.0,
         bvh_split_method: Some(BVHSplitMethod::SAH),
     };
 

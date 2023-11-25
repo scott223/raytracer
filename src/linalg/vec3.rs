@@ -53,6 +53,7 @@ impl Vec3 {
     }
 
     //creates a normalized random vector (on unit sphere) on the same hemisphere as given vector
+    #[inline(always)]
     pub fn new_random_on_hemisphere(normal: &Vec3, rng: &mut impl Rng) -> Self {
         let rv = Vec3::new_random_unit_vector(rng);
         if rv.dot(normal) > 0.0 {
@@ -64,6 +65,7 @@ impl Vec3 {
     }
 
     //creates a new random cosine pdf weigthed vector
+    #[inline(always)]
     pub fn random_cosine_direction(rng: &mut impl Rng) -> Self {
         let r1: f64 = rng.gen_range(0.0..1.0);
         let r2: f64 = rng.gen_range(0.0..1.0);
@@ -82,18 +84,22 @@ impl Vec3 {
     }
 
     // Exposing the x, y, z coordinates through functions
+    #[inline(always)]
     pub fn x(&self) -> f64 {
         self.x
     }
 
+    #[inline(always)]
     pub fn y(&self) -> f64 {
         self.y
     }
 
+    #[inline(always)]
     pub fn z(&self) -> f64 {
         self.z
     }
 
+    #[inline(always)]
     pub fn axis(&self, n: usize) -> f64 {
         match n {
             1 => self.y,
@@ -106,6 +112,7 @@ impl Vec3 {
     // calculate the Euclidean distance between two points
     // d(p, w) = sqrt((px - wx)^2 + (py - wy)^2 + (pz - wz)^2)
     // TODO add benchmark and replace with x * x to see if its
+    #[inline(always)]
     pub fn distance(&self, w: &Vec3) -> f64 {
         let dx = (self.x - w.x()).powf(2.0);
         let dy = f64::powf(self.y - w.y(), 2.0);
@@ -115,28 +122,33 @@ impl Vec3 {
 
     // fn length
     // calculate the vector (length) between point p and the origin (0,0,0)
+    #[inline(always)]
     pub fn length(&self) -> f64 {
         self.distance(&Vec3::new(0.0, 0.0, 0.0))
     }
 
     // fn lenght
     // calculates the length, squared
+    #[inline(always)]
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
     // fn abs
     // returns absolute value of vector, which is the same as its length (distance from 0.0)
+    #[inline(always)]
     pub fn abs(&self) -> f64 {
         self.length()
     }
 
     // vector dot multiplication of self with a given vector
+    #[inline(always)]
     pub fn dot(&self, w: &Vec3) -> f64 {
         self.x * w.x + self.y * w.y + self.z * w.z
     }
 
     // vector cross product
+    #[inline(always)]
     pub fn cross(&self, other: &Vec3) -> Vec3 {
         Vec3::new(
             self.y * other.z - self.z * other.y,
@@ -147,12 +159,14 @@ impl Vec3 {
 
     // fn normalized
     // return the normalized vector (= unit vector)
+    #[inline(always)]
     pub fn normalized(&self) -> Self {
         let l = self.length();
         Vec3::new(self.x() / l, self.y() / l, self.z() / l)
     }
 
     // returns a vector that is made from the smallest components of the two vectors
+    #[inline(always)]
     pub fn min(&self, other: Vec3) -> Self {
         Vec3 {
             x: self.x().min(other.x()),
@@ -162,6 +176,7 @@ impl Vec3 {
     }
 
     // returns a vector that is made from the smallest components of the two vectors
+    #[inline(always)]
     pub fn max(&self, other: Vec3) -> Self {
         Vec3 {
             x: self.x().max(other.x()),

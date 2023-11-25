@@ -12,6 +12,7 @@ pub struct Config {
     pub samples: usize,
     pub max_depth: usize,
     pub sky_color: Color,
+    pub pixel_radius: f64,
     pub bvh_split_method: Option<BVHSplitMethod>,
 }
 
@@ -35,6 +36,7 @@ impl Default for Config {
             max_depth: m,
             sky_color,
             bvh_split_method: Some(bvh_split_method),
+            pixel_radius: 2.0,
         }
     }
 }

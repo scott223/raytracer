@@ -60,7 +60,6 @@ impl Buckets {
                 best_split = split;
                 best_cost = plane_split_cost;
             }
-            
         }
 
         // set up the vertices for the left and right indices
@@ -84,8 +83,6 @@ impl Buckets {
 /// BVH single bucket struct
 #[derive(Debug, Clone)]
 struct Bucket {
-    /// Interval for the centroids of the elements in this buckt
-    interval: Interval,
 
     /// Indices of the objects that are part of this bucket
     indices: Vec<usize>,
@@ -105,6 +102,7 @@ impl Bucket {
 }
 
 /// BVH Node for the BHV tree (node or leaf), and it consists of references to objects with a hittable trait (elements)
+#[derive(Debug)]
 #[allow(non_camel_case_types)]
 pub enum BVHNode_SAH {
     Leaf {
@@ -140,6 +138,7 @@ pub enum BVHNode_SAH {
 
 /// BVH tree struct
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 pub struct BVH_SAH<'a> {
     /// The list of nodes of the BVH.
     pub nodes: Vec<BVHNode_SAH>,
@@ -396,35 +395,25 @@ impl BVHNode_SAH {
                         }
                         BVHSplitMethod::SAH => {
                             // define the number of buckets and define the size of one bucket
-                            const NUM_BUCKETS: usize = 12;
+                            const NUM_BUCKETS: usize = 16;
                             let mut bucket_vec: Vec<Bucket> = Vec::with_capacity(NUM_BUCKETS);
-                            let bucket_size: f64 = sort_axis_size / NUM_BUCKETS as f64;
 
                             // create the buckets, with the right interval
-                            for i in 1..NUM_BUCKETS + 1 {
-                                
+                            for _ in 1..NUM_BUCKETS + 1 {
                                 bucket_vec.push(Bucket {
                                     //set the interval for the bucket, starting at the min of the centroid Aabb
-                                    interval: Interval::new(
-                                        aabb_centroids.min[sort_axis] + 
-                                            ((i - 1) as f64) * bucket_size,
-                                        aabb_centroids.min[sort_axis] + (i as f64 * bucket_size),
-                                    ),
-                                    indices: Vec::new(),
+                                    indices: Vec::with_capacity(indices.len() / NUM_BUCKETS),
                                 });
                             }
 
-                            // walk through each object, and check if its within the interval of each bucket
+                            let k0: f64 = aabb_centroids.min[sort_axis];
+                            let k1: f64 = (NUM_BUCKETS as f64 * (1.0 - 0.0001)) / (aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis]);
+
+                            // walk through each object, check the bin number and add to the bucket
                             for index in indices {
-                                for b in &mut bucket_vec {
-                                    // check if this object is in the interval of this bucket
-                                    if b.interval.contains(
-                                        objects[*index].bounding_box().centroid()[sort_axis],
-                                    ) {
-                                        //add the elment to the bucket (this will also expand the bucket bounding box)
-                                        b.indices.push(*index);
-                                    }
-                                }
+                                let bin_id: usize = (k1 * (objects[*index].bounding_box().centroid[sort_axis]-k0)) as usize;
+                                bucket_vec[bin_id].indices.push(*index);
+                                
                             }
 
                             // add it to the bucket struct, so we can apply the split method

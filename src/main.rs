@@ -56,6 +56,7 @@ mod tests {
             samples: 8,
             max_depth: 8,
             sky_color: Color::new(0.5, 0.5, 0.5),
+            pixel_radius: 2.0,
             bvh_split_method: Some(BVHSplitMethod::Mid),
         };
         let json_camera: JSONCamera = JSONCamera {

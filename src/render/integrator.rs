@@ -22,11 +22,16 @@ use crate::{
     render::{Config, JSONScene},
 };
 
+use sobol_burley::sample;
+
+use super::filter::{MitchellNetravali, Filter};
+
 #[derive(Debug, Clone)]
 pub struct RenderIntegrator {
     json_scene: JSONScene,
     config: Config,
     pixels: Vec<Color>,
+    filter: Filter,
 }
 
 impl RenderIntegrator {
@@ -35,10 +40,13 @@ impl RenderIntegrator {
         let pixels =
             vec![Color::new(0.0, 0.0, 0.0); (config.img_width * config.img_height) as usize];
 
+        let filter: Filter = Filter::MitchellNetravali(MitchellNetravali::new(config.pixel_radius, config.pixel_radius, 1./3., 1./3.));
+
         RenderIntegrator {
             json_scene,
             config,
             pixels,
+            filter,
         }
     }
 
@@ -163,7 +171,8 @@ impl RenderIntegrator {
         // use Rayon parallel iterator to iterate over the bands and render per line
         bands.into_par_iter().for_each(|(i, band)| {
             Self::render_line(
-                i as i64,
+                &self.filter,
+                i,
                 band,
                 &camera,
                 &bvh_tree_sah,
@@ -182,7 +191,8 @@ impl RenderIntegrator {
     // fn render_line
     // takes a band of pixels (a single horizontal line along a fixed y coordinate) and renders the pixels on that band
     fn render_line(
-        y: i64,
+        filter: &Filter,
+        y: usize,
         band: &mut [Color],
         camera: &Camera,
         bvh_tree_sah: &BVH_SAH,
@@ -194,14 +204,24 @@ impl RenderIntegrator {
         for (x, band_item) in band.iter_mut().enumerate().take(config.img_width as usize) {
             // start with black color
             let mut color: Color = Color::new(0.0, 0.0, 0.0);
+            let mut sum_sample_weight: f64 = 0.0;
 
             // sets a pixel to follow and print detailed logs
             let _follow_coords: [usize; 2] = [40, 120];
+            let pixel_num: u32 = (x * y) as u32;
 
             // loop through all the anti aliasing samples
             for i in 0..config.samples {
+
+                // use the Sobol sampler to get a sample position relevative to the pixel center
+
+                let sample_position = vec!(((sample(i as u32, 0, pixel_num) as f64 * config.pixel_radius) - config.pixel_radius/2.), ((sample(i as u32, 1, pixel_num) as f64 * config.pixel_radius) - config.pixel_radius/2.));
+                let sample_weight = filter.evaluate(sample_position[0], sample_position[1]);
+                sum_sample_weight += sample_weight;
+
                 // get multiple rays for anti alliasing, and add the colors
-                let ray: Ray = camera.get_prime_ray(x as i64, y, &mut rng);
+                let ray: Ray = camera.get_prime_ray(x, y, &mut rng, sample_position);
+                
                 //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
                 let follow = false;
 
@@ -216,12 +236,11 @@ impl RenderIntegrator {
                     config.max_depth,
                     &mut rng,
                     follow,
-                );
+                ) * sample_weight;
             }
 
             // set pixel color, but first divide by the number of samples to get the average and return
-            *band_item = color
-                .divide_by_samples(config.samples)
+            *band_item = (color / sum_sample_weight)
                 .clamp()
                 .linear_to_gamma(2.2);
         }
