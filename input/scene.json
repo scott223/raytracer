@@ -16,6 +16,22 @@
   },
   "elements": [
     {
+      "JSONSphere": {
+        "center": {
+          "x": 420,
+          "y": 60,
+          "z": 100.0
+        },
+        "radius": 60,
+        "material": {
+          "Dielectric": {
+            "index_of_refraction": 1.5
+          }
+        },
+        "attractor": true
+      }
+    },
+    {
       "JSONObj": {
         "filepath": "input/obj/dragon.obj",
         "material": {
@@ -59,9 +75,9 @@
         "material": {
           "Metal": {
             "albedo": {
-              "r": 0.2,
-              "g": 0.2,
-              "b": 0.73
+              "r": 0.3,
+              "g": 0.3,
+              "b": 0.83
             },
             "fuzz": 0.1
           }
@@ -437,8 +453,8 @@
         "DiffuseLight": {
           "albedo": {
             "r": 10.0,
-            "g": 10.0,
-            "b": 10.0
+            "g": 8.0,
+            "b": 8.0
           }
         }
       },

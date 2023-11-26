@@ -19,6 +19,10 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 - scene and configuration input from JSON
 - ...
 
+![Render example](https://github.com/scott223/raytracer/blob/main/render1200.png?raw=true)
+Render of different objects (cube, sphere, .obj file import (100k triangles) and materials (lambertian, glass, fuzzy metal). This render of 1200x1200 pixels with 2000 samples per pixel took about 30 minutes to complete on MacBook Air M2.
+
+
 ## todo's
 - adaptive sampling
 - BRDF materials

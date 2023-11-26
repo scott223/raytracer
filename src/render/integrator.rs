@@ -242,7 +242,7 @@ impl RenderIntegrator {
             // set pixel color, but first divide by the number of samples to get the average and return
             *band_item = (color / sum_sample_weight)
                 .clamp()
-                .linear_to_gamma(2.2);
+                .linear_to_gamma(2.5);
         }
     }
 
