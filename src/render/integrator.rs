@@ -31,6 +31,7 @@ pub struct RenderIntegrator {
     json_scene: JSONScene,
     config: Config,
     pixels: Vec<Color>,
+    sample_pixels: Vec<Color>,
     filter: Filter,
 }
 
@@ -40,12 +41,16 @@ impl RenderIntegrator {
         let pixels =
             vec![Color::new(0.0, 0.0, 0.0); (config.img_width * config.img_height) as usize];
 
+        let sample_pixels =
+            vec![Color::new(0.0, 0.0, 0.0); (config.img_width * config.img_height) as usize];
+
         let filter: Filter = Filter::MitchellNetravali(MitchellNetravali::new(config.pixel_radius, config.pixel_radius, 1./3., 1./3.));
 
         RenderIntegrator {
             json_scene,
             config,
             pixels,
+            sample_pixels,
             filter,
         }
     }
@@ -82,6 +87,42 @@ impl RenderIntegrator {
         }
 
         let path = Path::new(png_path);
+        let file = File::create(path).unwrap();
+        let w = &mut BufWriter::new(file);
+
+        let mut encoder = png::Encoder::new(
+            w,
+            self.config.img_width as u32,
+            self.config.img_height as u32,
+        ); // Width x heigth
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.set_source_gamma(png::ScaledFloat::new(1.0 / 2.2)); // 1.0 / 2.2, unscaled, but rounded
+        let source_chromaticities = png::SourceChromaticities::new(
+            // Using unscaled instantiation here
+            (0.31270, 0.32900),
+            (0.64000, 0.33000),
+            (0.30000, 0.60000),
+            (0.15000, 0.06000),
+        );
+        encoder.set_source_chromaticities(source_chromaticities);
+        let mut writer = encoder.write_header().unwrap();
+
+        let data = raw_pixels; // An array containing a RGB sequence
+        writer.write_image_data(&data).unwrap(); // Save
+
+        // Sample image
+
+        let mut raw_pixels: Vec<u8> = Vec::new();
+
+        for p in &self.sample_pixels {
+            let rgb = p.to_rgb();
+            raw_pixels.push(rgb.r);
+            raw_pixels.push(rgb.g);
+            raw_pixels.push(rgb.b);
+        }
+
+        let path = Path::new("samples.png");
         let file = File::create(path).unwrap();
         let w = &mut BufWriter::new(file);
 
@@ -153,6 +194,12 @@ impl RenderIntegrator {
             .enumerate()
             .collect();
 
+        let sample_bands: Vec<(usize, &mut [Color])> = self
+            .sample_pixels
+            .chunks_mut(self.config.img_width as usize)
+            .enumerate()
+            .collect();
+
         // start the actual render
         log::info!("Starting render");
         let pb: ProgressBar = ProgressBar::new(self.config.img_height as u64);
@@ -168,17 +215,25 @@ impl RenderIntegrator {
             .progress_chars("#>-"),
         );
 
+        //let mut sample_pixels: Vec<Color> = Vec::with_capacity((self.config.img_height * self.config.img_width) as usize);
+
         // use Rayon parallel iterator to iterate over the bands and render per line
-        bands.into_par_iter().for_each(|(i, band)| {
-            Self::render_line(
-                &self.filter,
-                i,
-                band,
-                &camera,
-                &bvh_tree_sah,
-                &attractors,
-                &self.config,
-            );
+        bands.into_par_iter()
+            .zip(sample_bands.into_par_iter())
+            .enumerate()
+            .for_each(|(i, (band, sample_band))| {
+
+                Self::render_line(
+                    &self.filter,
+                    i,
+                    band.1,
+                    sample_band.1,
+                    &camera,
+                    &bvh_tree_sah,
+                    &attractors,
+                    &self.config,
+                );
+
             pb.inc(1);
         });
 
@@ -194,14 +249,19 @@ impl RenderIntegrator {
         filter: &Filter,
         y: usize,
         band: &mut [Color],
+        sample_pixels: &mut [Color],
         camera: &Camera,
         bvh_tree_sah: &BVH_SAH,
         lights: &Vec<&Element>,
         config: &Config,
     ) {
         let mut rng: SmallRng = SmallRng::seed_from_u64(y as u64);
+        //let mut sample_pixels: Vec<Color> = Vec::with_capacity(config.img_width as usize);
 
-        for (x, band_item) in band.iter_mut().enumerate().take(config.img_width as usize) {
+        let max_samples: i32 = config.samples as i32;
+        
+
+        for (x, band_item) in band.iter_mut().enumerate() {
             // start with black color
             let mut color: Color = Color::new(0.0, 0.0, 0.0);
             let mut sum_sample_weight: f64 = 0.0;
@@ -209,6 +269,7 @@ impl RenderIntegrator {
             // sets a pixel to follow and print detailed logs
             let _follow_coords: [usize; 2] = [40, 120];
             let pixel_num: u32 = (x * y) as u32;
+            let mut actual_samples: i32 = 0;
 
             // loop through all the anti aliasing samples
             for i in 0..config.samples {
@@ -237,12 +298,19 @@ impl RenderIntegrator {
                     &mut rng,
                     follow,
                 ) * sample_weight;
+
+                actual_samples += 1;
             }
 
             // set pixel color, but first divide by the number of samples to get the average and return
             *band_item = (color / sum_sample_weight)
                 .clamp()
                 .linear_to_gamma(2.5);
+
+            let factor: f64 = actual_samples as f64 / max_samples as f64;
+            sample_pixels[x] = Color::new(factor as f64 * 1.0, (1.0-factor) * 1.0, 0.0);
+            
+
         }
     }
 
@@ -375,23 +443,5 @@ impl RenderIntegrator {
                 Color::new(0.0, 0.0, 0.0)
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    //use crate::config::Config;
-    //use crate::config::Scene;
-
-    use std::error::Error;
-
-    #[test_log::test]
-    fn test_render_full_scene() -> Result<(), Box<dyn Error>> {
-        //TODO: test and default for config and scene
-
-        //let _config: Config = Config::default();
-        //let _scene: Scene = Scene::default();
-        //render(scene, config)?;
-        Ok(())
     }
 }

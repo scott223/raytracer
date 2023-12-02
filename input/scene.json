@@ -16,24 +16,8 @@
   },
   "elements": [
     {
-      "JSONSphere": {
-        "center": {
-          "x": 420,
-          "y": 60,
-          "z": 100.0
-        },
-        "radius": 60,
-        "material": {
-          "Dielectric": {
-            "index_of_refraction": 1.5
-          }
-        },
-        "attractor": true
-      }
-    },
-    {
       "JSONObj": {
-        "filepath": "input/obj/dragon.obj",
+        "filepath": "input/obj/teapot.obj",
         "material": {
           "Lambertian": {
             "albedo": {

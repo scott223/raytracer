@@ -30,12 +30,11 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 
 ## Rust learnings applied
 - modules, imports, external crates
-- borrow, explicit lifetimes
-- custom types
+- ownership/references/borrow, explicit lifetimes
 - methods, enums, structs
 - generic methods
 - Traits
-- iterators, match statement
+- basic iterators, match statement
 - Result, Error, Option
 - reading files, saving files
 - logging, .env
