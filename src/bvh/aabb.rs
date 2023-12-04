@@ -378,7 +378,7 @@ mod tests {
 
         let area = aabb.area();
 
-        assert_eq!(area, (1.*2.)+(2.*1.)+(1.*1.));
+        assert_eq!(area, (1. * 2.) + (2. * 1.) + (1. * 1.));
 
         let p: Vec3 = Vec3::new(-2.0, 1.0, -2.0);
         let q: Vec3 = Vec3::new(2.0, 5.0, 2.0);
@@ -387,6 +387,6 @@ mod tests {
 
         let area = aabb.area();
 
-        assert_eq!(area, (4.*4.)+(4.*4.)+(4.*4.));
+        assert_eq!(area, (4. * 4.) + (4. * 4.) + (4. * 4.));
     }
 }

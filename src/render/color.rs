@@ -1,5 +1,6 @@
 use std::{
     fmt,
+    iter::Sum,
     ops::{Add, AddAssign, Div, Mul, Sub},
 };
 
@@ -22,15 +23,6 @@ impl Color {
     // creates a new color
     pub fn new(r: f64, g: f64, b: f64) -> Self {
         Color { r, g, b }
-    }
-
-    // divides the color by the number of samples
-    pub fn divide_by_samples(&self, samples: usize) -> Self {
-        Color::new(
-            self.r / samples as f64,
-            self.g / samples as f64,
-            self.b / samples as f64,
-        )
     }
 
     // returns its own value with max 1.0 and min 0.0
@@ -63,6 +55,36 @@ impl Color {
 
     pub fn has_nan(&self) -> bool {
         self.r.is_nan() || self.g.is_nan() || self.b.is_nan()
+    }
+
+    #[inline(always)]
+    pub fn abs_delta(&self, other: Color) -> f64 {
+        (self.r - other.r).abs() + (self.b - other.b).abs() + (self.g - other.g).abs()
+    }
+
+    #[inline(always)]
+    pub fn illuminance(&self) -> f64 {
+        0.2126 * self.r + 0.7152 * self.g+ 0.0722 * self.b
+    }
+}
+
+impl<'a> Sum<Self> for Color {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(
+            Self {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+            },
+            |a, b| Self {
+                r: a.r + b.r,
+                g: a.g + b.g,
+                b: a.b + b.b,
+            },
+        )
     }
 }
 

@@ -1,4 +1,3 @@
-
 /// Enum for different filter classes
 #[derive(Debug, Clone)]
 pub enum Filter {
@@ -30,7 +29,6 @@ pub struct MitchellNetravali {
 }
 
 impl MitchellNetravali {
-    
     /// Returns a new MN filter
     pub fn new(w: f64, h: f64, b: f64, c: f64) -> Self {
         MitchellNetravali {
@@ -73,5 +71,4 @@ impl MitchellNetravali {
     pub fn get_radius(&self) -> (f64, f64) {
         (self.width, self.height)
     }
-
 }

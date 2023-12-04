@@ -53,7 +53,9 @@ mod tests {
         let config: Config = Config {
             img_width: 600.,
             img_height: 600.,
-            samples: 8,
+            sample_batch_size: 12,
+            max_sample_batches: 1,
+            min_sample_batches: 1,
             max_depth: 8,
             sky_color: Color::new(0.5, 0.5, 0.5),
             pixel_radius: 2.0,

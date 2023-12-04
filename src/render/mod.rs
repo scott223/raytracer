@@ -27,3 +27,6 @@ pub use axis::Axis;
 
 mod filter;
 pub use filter::Filter::MitchellNetravali;
+
+mod stats;
+pub use stats::Stats;

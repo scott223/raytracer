@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub img_width: f64,
     pub img_height: f64,
-    pub samples: usize,
+    pub sample_batch_size: usize,
+    pub max_sample_batches: usize,
+    pub min_sample_batches: usize,
     pub max_depth: usize,
     pub sky_color: Color,
     pub pixel_radius: f64,
@@ -22,7 +24,6 @@ impl Default for Config {
         let w: f64 = 1024.0; //image width
         let h: f64 = w / r; //image heigth, doing the math as double but casting to int as we cannot have a float number of heigth
 
-        let s: usize = 1; //samples
         let m: usize = 32; //max depth
 
         let sky_color = Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0);
@@ -32,7 +33,9 @@ impl Default for Config {
         Config {
             img_width: w,
             img_height: h,
-            samples: s,
+            sample_batch_size: 16,
+            max_sample_batches: 2,
+            min_sample_batches: 1,
             max_depth: m,
             sky_color,
             bvh_split_method: Some(bvh_split_method),

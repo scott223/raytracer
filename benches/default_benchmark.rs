@@ -89,7 +89,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let config_mid: Config = Config {
         img_width: 300.,
         img_height: 300.,
-        samples: 4,
+        sample_batch_size: 12,
+        max_sample_batches: 1,
+        min_sample_batches: 1,
         max_depth: 8,
         sky_color: Color::new(0.5, 0.5, 0.5),
         pixel_radius: 2.0,
@@ -99,13 +101,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let config_sah: Config = Config {
         img_width: 300.,
         img_height: 300.,
-        samples: 4,
+        sample_batch_size: 12,
+        max_sample_batches: 1,
+        min_sample_batches: 1,
         max_depth: 8,
         sky_color: Color::new(0.5, 0.5, 0.5),
         pixel_radius: 2.0,
         bvh_split_method: Some(BVHSplitMethod::SAH),
     };
-
 
     let mut r_mid = RenderIntegrator::new(json_scene.clone(), config_mid);
     let mut r_sah = RenderIntegrator::new(json_scene, config_sah);

@@ -92,7 +92,13 @@ impl Camera {
 
     // Get a randomly-sampled camera ray for the pixel at location x,i, originating from
     // the camera defocus disk.
-    pub fn get_prime_ray(self, x: usize, y: usize, rng: &mut impl Rng, sample_position: Vec<f64>) -> Ray {
+    pub fn get_prime_ray(
+        self,
+        x: usize,
+        y: usize,
+        rng: &mut impl Rng,
+        sample_position: Vec<f64>,
+    ) -> Ray {
         // get a random point in the camera defocus disk to be used as an origin, or the camera center if the defocus angle <= 0 (this is for focus blur)
 
         let ray_origin: Vec3 = if self.defocus_angle <= 0.0 {
@@ -138,7 +144,9 @@ mod tests {
         let _config: Config = Config {
             img_width: 1024.0,
             img_height: 576.0,
-            samples: 1,
+            sample_batch_size: 12,
+            max_sample_batches: 1,
+            min_sample_batches: 1,
             max_depth: 32,
             sky_color: Color::new(3.0 / 255.0, 165.0 / 255.0, 252.0 / 255.0),
             pixel_radius: 2.0,

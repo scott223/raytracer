@@ -26,18 +26,16 @@ struct Buckets {
 }
 
 impl Buckets {
-
     /// Returns two vectors with indices split at the plane, taking into account the cost based on Surface Area Heuristic
     pub fn split_objects(&mut self, objects: &Vec<Element>) -> (Vec<usize>, Vec<usize>) {
-
         let mut best_split: usize = 0;
         let mut best_cost: f64 = f64::INFINITY;
 
         // walk through the different split planes
         for split in 1..self.buckets.len() {
+            let (mut left_area, mut left_count, mut right_area, mut right_count) =
+                (0.0, 0.0, 0.0, 0.0);
 
-            let (mut left_area, mut left_count, mut right_area, mut right_count) = (0.0, 0.0, 0.0, 0.0);
-            
             // walk through the buckets
             for i in 0..self.buckets.len() {
                 // walk through the indices in the bucket, and assing to left or right side
@@ -83,20 +81,17 @@ impl Buckets {
 /// BVH single bucket struct
 #[derive(Debug, Clone)]
 struct Bucket {
-
     /// Indices of the objects that are part of this bucket
     indices: Vec<usize>,
 }
 
 impl Bucket {
-
     /// Returns the bounding box for this bucket
-    pub fn bounding_box(&mut self, objects: &[Element])-> Aabb {
-        
+    pub fn bounding_box(&mut self, objects: &[Element]) -> Aabb {
         // check if there are indices assigned to this bucket
         assert!(!self.indices.is_empty());
 
-        // return the bounding box for the objects assigned to this bucket 
+        // return the bounding box for the objects assigned to this bucket
         Aabb::new_from_objects(objects, &self.indices)
     }
 }
@@ -160,10 +155,7 @@ impl BVH_SAH<'_> {
         BVHNode_SAH::build(objects, &indices, &mut nodes, 0, 0, &split_method);
 
         // return the tree, with a reference to the objects (needed for the hits)
-        BVH_SAH {
-            nodes,
-            objects,
-        }
+        BVH_SAH { nodes, objects }
     }
 
     /// Get a hit from the BVH tree, this starts at the first node.
@@ -199,7 +191,6 @@ impl BVHNode_SAH {
                 depth: _self_depth,
                 element_index: self_element_index,
             } => {
-                
                 // we made it all the way to the leaf, so we do the hit with the actual element
                 objects[self_element_index].hit(ray, ray_t)
             }
@@ -211,10 +202,8 @@ impl BVHNode_SAH {
                 child_r_index: self_child_r_index,
                 child_r_aabb: self_child_r_aabb,
             } => {
-                
                 // check for a hit in the left aabb first
                 if self_child_l_aabb.hit(ray, ray_t) {
-                    
                     //check a hit in the following node
                     let left_hit: Option<HitRecord> =
                         nodes[self_child_l_index].hit(objects, nodes, ray, ray_t, _follow);
@@ -242,8 +231,7 @@ impl BVHNode_SAH {
                             // this function returns Some(rh) if a hit is found, and None if no hit is found
 
                             if self_child_r_aabb.hit(ray, ray_t) {
-                                nodes[self_child_r_index]
-                                    .hit(objects, nodes, ray, ray_t, _follow)
+                                nodes[self_child_r_index].hit(objects, nodes, ray, ray_t, _follow)
                             } else {
                                 None
                             }
@@ -373,7 +361,6 @@ impl BVHNode_SAH {
                         }
                     }
                 } else {
-                    
                     // axis is large enough to split
                     match split_method {
                         BVHSplitMethod::Mid => {
@@ -407,13 +394,15 @@ impl BVHNode_SAH {
                             }
 
                             let k0: f64 = aabb_centroids.min[sort_axis];
-                            let k1: f64 = (NUM_BUCKETS as f64 * (1.0 - 0.0001)) / (aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis]);
+                            let k1: f64 = (NUM_BUCKETS as f64 * (1.0 - 0.0001))
+                                / (aabb_centroids.max[sort_axis] - aabb_centroids.min[sort_axis]);
 
                             // walk through each object, check the bin number and add to the bucket
                             for index in indices {
-                                let bin_id: usize = (k1 * (objects[*index].bounding_box().centroid[sort_axis]-k0)) as usize;
+                                let bin_id: usize = (k1
+                                    * (objects[*index].bounding_box().centroid[sort_axis] - k0))
+                                    as usize;
                                 bucket_vec[bin_id].indices.push(*index);
-                                
                             }
 
                             // add it to the bucket struct, so we can apply the split method

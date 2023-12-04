@@ -24,7 +24,7 @@ use crate::{
 
 use sobol_burley::sample;
 
-use super::filter::{MitchellNetravali, Filter};
+use super::filter::{Filter, MitchellNetravali};
 
 #[derive(Debug, Clone)]
 pub struct RenderIntegrator {
@@ -44,7 +44,12 @@ impl RenderIntegrator {
         let sample_pixels =
             vec![Color::new(0.0, 0.0, 0.0); (config.img_width * config.img_height) as usize];
 
-        let filter: Filter = Filter::MitchellNetravali(MitchellNetravali::new(config.pixel_radius, config.pixel_radius, 1./3., 1./3.));
+        let filter: Filter = Filter::MitchellNetravali(MitchellNetravali::new(
+            config.pixel_radius,
+            config.pixel_radius,
+            1. / 3.,
+            1. / 3.,
+        ));
 
         RenderIntegrator {
             json_scene,
@@ -218,11 +223,11 @@ impl RenderIntegrator {
         //let mut sample_pixels: Vec<Color> = Vec::with_capacity((self.config.img_height * self.config.img_width) as usize);
 
         // use Rayon parallel iterator to iterate over the bands and render per line
-        bands.into_par_iter()
+        bands
+            .into_par_iter()
             .zip(sample_bands.into_par_iter())
             .enumerate()
             .for_each(|(i, (band, sample_band))| {
-
                 Self::render_line(
                     &self.filter,
                     i,
@@ -234,8 +239,8 @@ impl RenderIntegrator {
                     &self.config,
                 );
 
-            pb.inc(1);
-        });
+                pb.inc(1);
+            });
 
         log::info!("Render finished!");
 
@@ -258,59 +263,97 @@ impl RenderIntegrator {
         let mut rng: SmallRng = SmallRng::seed_from_u64(y as u64);
         //let mut sample_pixels: Vec<Color> = Vec::with_capacity(config.img_width as usize);
 
-        let max_samples: i32 = config.samples as i32;
-        
+        let max_samples: usize = config.sample_batch_size * config.max_sample_batches;
 
         for (x, band_item) in band.iter_mut().enumerate() {
             // start with black color
             let mut color: Color = Color::new(0.0, 0.0, 0.0);
+            //let mut previous_color: Color = Color::new(0.0, 0.0, 0.0);
+
+            let mut actual_samples: usize = 0;
             let mut sum_sample_weight: f64 = 0.0;
 
             // sets a pixel to follow and print detailed logs
             let _follow_coords: [usize; 2] = [40, 120];
-            let pixel_num: u32 = (x * y) as u32;
-            let mut actual_samples: i32 = 0;
+            let pixel_num: usize = x * y;
 
-            // loop through all the anti aliasing samples
-            for i in 0..config.samples {
+            let mut colors: Vec<Color> = Vec::with_capacity(config.max_sample_batches);
+            let mut weights: Vec<f64> = Vec::with_capacity(config.max_sample_batches);
 
-                // use the Sobol sampler to get a sample position relevative to the pixel center
+            'batch: for b in 0..config.max_sample_batches {
+                let mut batch_color: Color = Color::new(0.0, 0.0, 0.0);
+                let mut batch_sum_sample_weight: f64 = 0.0;
 
-                let sample_position = vec!(((sample(i as u32, 0, pixel_num) as f64 * config.pixel_radius) - config.pixel_radius/2.), ((sample(i as u32, 1, pixel_num) as f64 * config.pixel_radius) - config.pixel_radius/2.));
-                let sample_weight = filter.evaluate(sample_position[0], sample_position[1]);
-                sum_sample_weight += sample_weight;
+                // loop through all the anti aliasing samples
+                for i in 0..config.sample_batch_size {
+                    // use the Sobol sampler to get a sample position relevative to the pixel center
+                    let sample_position = vec![
+                        ((sample(i as u32, 0, pixel_num as u32) as f64 * config.pixel_radius)
+                            - config.pixel_radius / 2.),
+                        ((sample(i as u32, 1, pixel_num as u32) as f64 * config.pixel_radius)
+                            - config.pixel_radius / 2.),
+                    ];
 
-                // get multiple rays for anti alliasing, and add the colors
-                let ray: Ray = camera.get_prime_ray(x, y, &mut rng, sample_position);
-                
-                //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
-                let follow = false;
+                    let sample_weight = filter.evaluate(sample_position[0], sample_position[1]);
+                    batch_sum_sample_weight += sample_weight;
 
-                if follow {
-                    log::info!("sample: {}", i);
+                    // get multiple rays for anti alliasing, and add the colors
+                    let ray: Ray = camera.get_prime_ray(x, y, &mut rng, sample_position);
+
+                    //let follow: bool = x == follow_coords[0] && y as usize == follow_coords[1];
+                    let follow = false;
+
+                    if follow {
+                        log::info!("sample: {}", i);
+                    }
+
+                    batch_color += Self::ray_color(
+                        bvh_tree_sah,
+                        lights,
+                        &ray,
+                        config.max_depth,
+                        &mut rng,
+                        follow,
+                    ) * sample_weight;
+
+                    actual_samples += 1;
                 }
 
-                color += Self::ray_color(
-                    bvh_tree_sah,
-                    lights,
-                    &ray,
-                    config.max_depth,
-                    &mut rng,
-                    follow,
-                ) * sample_weight;
+                colors.push(batch_color);
+                weights.push(batch_sum_sample_weight);
 
-                actual_samples += 1;
+
+
+                //color += batch_color;
+                //sum_sample_weight += batch_sum_sample_weight;
+
+
+
+                if b > config.min_sample_batches {
+                    if (true)
+                    {
+                        break 'batch;
+                    }
+                }
             }
 
+            let sum_color: Color =  colors.iter()
+                            .zip(weights.iter())
+                            .map(|(c, w)| *c * *w)
+                            .sum();
+
+            let sum_weights: f64 =  weights.iter().sum();
+
             // set pixel color, but first divide by the number of samples to get the average and return
-            *band_item = (color / sum_sample_weight)
+            *band_item = (sum_color / sum_weights)
                 .clamp()
                 .linear_to_gamma(2.5);
 
-            let factor: f64 = actual_samples as f64 / max_samples as f64;
-            sample_pixels[x] = Color::new(factor as f64 * 1.0, (1.0-factor) * 1.0, 0.0);
-            
-
+            let factor: f64 =
+                (actual_samples - config.min_sample_batches * config.sample_batch_size) as f64
+                    / max_samples as f64;
+            //log::info!("sample_factor: {}",factor);
+            sample_pixels[x] = Color::new(factor as f64 * 1.0, (1.0 - factor) * 1.0, 0.0);
         }
     }
 
