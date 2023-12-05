@@ -24,7 +24,7 @@ use crate::{
 
 use sobol_burley::sample;
 
-use super::filter::{Filter, MitchellNetravali};
+use super::{filter::{Filter, MitchellNetravali}, Stats};
 
 #[derive(Debug, Clone)]
 pub struct RenderIntegrator {
@@ -267,18 +267,14 @@ impl RenderIntegrator {
 
         for (x, band_item) in band.iter_mut().enumerate() {
             // start with black color
-            let mut color: Color = Color::new(0.0, 0.0, 0.0);
-            //let mut previous_color: Color = Color::new(0.0, 0.0, 0.0);
 
             let mut actual_samples: usize = 0;
-            let mut sum_sample_weight: f64 = 0.0;
 
             // sets a pixel to follow and print detailed logs
             let _follow_coords: [usize; 2] = [40, 120];
             let pixel_num: usize = x * y;
 
-            let mut colors: Vec<Color> = Vec::with_capacity(config.max_sample_batches);
-            let mut weights: Vec<f64> = Vec::with_capacity(config.max_sample_batches);
+            let mut stats = Stats::new(max_samples);
 
             'batch: for b in 0..config.max_sample_batches {
                 let mut batch_color: Color = Color::new(0.0, 0.0, 0.0);
@@ -319,35 +315,19 @@ impl RenderIntegrator {
                     actual_samples += 1;
                 }
 
-                colors.push(batch_color);
-                weights.push(batch_sum_sample_weight);
-
-
-
-                //color += batch_color;
-                //sum_sample_weight += batch_sum_sample_weight;
-
-
+                stats.push(batch_color, batch_sum_sample_weight);
 
                 if b > config.min_sample_batches {
-                    if (true)
-                    {
+                    //log::info!("var {}, check {}", stats.interval(), 0.05 * stats.mean().illuminance());
+
+                    if stats.interval() < 0.05 * stats.mean().illuminance() {
                         break 'batch;
                     }
                 }
             }
 
-            let sum_color: Color =  colors.iter()
-                            .zip(weights.iter())
-                            .map(|(c, w)| *c * *w)
-                            .sum();
-
-            let sum_weights: f64 =  weights.iter().sum();
-
             // set pixel color, but first divide by the number of samples to get the average and return
-            *band_item = (sum_color / sum_weights)
-                .clamp()
-                .linear_to_gamma(2.5);
+            *band_item = (stats.mean()).clamp().linear_to_gamma(config.gamma_correction);
 
             let factor: f64 =
                 (actual_samples - config.min_sample_batches * config.sample_batch_size) as f64

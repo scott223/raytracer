@@ -1,9 +1,9 @@
 {
   "img_width": 600.0,
   "img_height": 600.0,
-  "sample_batch_size": 16,
-  "max_sample_batches": 12,
-  "min_sample_batches": 2,
+  "sample_batch_size": 64,
+  "max_sample_batches": 120,
+  "min_sample_batches": 10,
   "max_depth": 6,
   "sky_color": {
     "r": 0.3,
@@ -11,5 +11,6 @@
     "b": 0.9
   },
   "pixel_radius": 2.0,
-  "bvh_split_method": "SAH"
+  "bvh_split_method": "SAH",
+  "gamma_correction": 2.2
 }

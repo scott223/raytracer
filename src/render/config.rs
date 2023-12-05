@@ -16,6 +16,7 @@ pub struct Config {
     pub sky_color: Color,
     pub pixel_radius: f64,
     pub bvh_split_method: Option<BVHSplitMethod>,
+    pub gamma_correction: f64,
 }
 
 impl Default for Config {
@@ -40,6 +41,7 @@ impl Default for Config {
             sky_color,
             bvh_split_method: Some(bvh_split_method),
             pixel_radius: 2.0,
+            gamma_correction: 2.2,
         }
     }
 }

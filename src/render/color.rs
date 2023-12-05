@@ -64,7 +64,8 @@ impl Color {
 
     #[inline(always)]
     pub fn illuminance(&self) -> f64 {
-        0.2126 * self.r + 0.7152 * self.g+ 0.0722 * self.b
+        let c = self.clamp();
+        0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
     }
 }
 

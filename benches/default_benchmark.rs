@@ -96,6 +96,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         sky_color: Color::new(0.5, 0.5, 0.5),
         pixel_radius: 2.0,
         bvh_split_method: Some(BVHSplitMethod::Mid),
+        gamma_correction: 2.2,
     };
 
     let config_sah: Config = Config {
@@ -108,6 +109,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         sky_color: Color::new(0.5, 0.5, 0.5),
         pixel_radius: 2.0,
         bvh_split_method: Some(BVHSplitMethod::SAH),
+        gamma_correction: 2.2,
     };
 
     let mut r_mid = RenderIntegrator::new(json_scene.clone(), config_mid);

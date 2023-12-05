@@ -60,6 +60,7 @@ mod tests {
             sky_color: Color::new(0.5, 0.5, 0.5),
             pixel_radius: 2.0,
             bvh_split_method: Some(BVHSplitMethod::Mid),
+            gamma_correction: 2.2,
         };
         let json_camera: JSONCamera = JSONCamera {
             camera_center: Vec3::new(278., 278., -800.),
