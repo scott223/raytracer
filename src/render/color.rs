@@ -64,15 +64,40 @@ impl Color {
 
     #[inline(always)]
     pub fn illuminance(&self) -> f64 {
-        let c = self.clamp();
-        0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+        //let c = self.clamp();
+        0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
+    }
+
+    // faster implementation of approx illuminance
+    pub fn illuminance_approx(&self) -> f64 {
+        (self.r+self.r+self.b+self.g+self.g+self.g) / 6.0
     }
 }
 
-impl<'a> Sum<Self> for Color {
+impl Sum<Self> for Color {
     fn sum<I>(iter: I) -> Self
     where
         I: Iterator<Item = Self>,
+    {
+        iter.fold(
+            Self {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+            },
+            |a, b| Self {
+                r: a.r + b.r,
+                g: a.g + b.g,
+                b: a.b + b.b,
+            },
+        )
+    }
+}
+
+impl<'a> Sum<&'a Self> for Color {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a Self>,
     {
         iter.fold(
             Self {

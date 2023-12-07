@@ -7,25 +7,22 @@
 Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust, not make a very good raytracer.
 
 ## Ray tracing features
-- Monte Carlo raytracer 
-- anti aliasing using Sobol sequence and MitchellNetravali filter
-- weigthed importance sampling using Probability Distribution Functions and attractors (e.g. lights)
-- various primitives (triangle, quad, sphere)
-- various materials (Lambertian, Metal, Glass, ...)
+- Monte Carlo raytracer with adaptive sampling (based on z-test confidence interval) 
+- Anti aliasing using Sobol sequence and Mitchell Netravali filter
+- Weigthed importance sampling using Probability Distribution Functions and attractors (e.g. lights)
+- Various primitives (triangle, quad, sphere)
+- Various materials (Lambertian, Metal, Glass, ...)
 - Bounded Hierarchy Volumes (BHV) tree, constructed using Surface Area Heuristic (SAH), to accelerate intersection tracing
-- parallel multi-threaded rendering using Rayon
-- shadow acne prevention
-- gamma correction
-- configurable depth of focus
-- scene and configuration input from JSON
+- Parallel multi-threaded rendering using Rayon
+- Gamma correction
+- Configurable depth of focus
+- Scene and configuration input from JSON
 - ...
 
 ![Render example](https://github.com/scott223/raytracer/blob/main/render1200.png?raw=true)
 *Render of different objects (cube, sphere, .obj file import (100k triangles) and materials (lambertian, glass, fuzzy metal). This render of 1200x1200 pixels with 2000 samples per pixel took about 30 minutes to complete on MacBook Air M2*
 
-
 ## todo's
-- adaptive sampling
 - BRDF materials
 
 ## Rust learnings applied
@@ -33,7 +30,7 @@ Simple Raytracer for simple 3D scenes, made in Rust. Objective is to learn Rust,
 - ownership/references/borrow, explicit lifetimes
 - methods, enums, structs
 - generic methods
-- Traits
+- traits
 - basic iterators, match statement
 - Result, Error, Option
 - reading files, saving files

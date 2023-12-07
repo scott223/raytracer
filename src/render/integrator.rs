@@ -291,7 +291,6 @@ impl RenderIntegrator {
                     ];
 
                     let sample_weight = filter.evaluate(sample_position[0], sample_position[1]);
-                    batch_sum_sample_weight += sample_weight;
 
                     // get multiple rays for anti alliasing, and add the colors
                     let ray: Ray = camera.get_prime_ray(x, y, &mut rng, sample_position);
@@ -312,13 +311,15 @@ impl RenderIntegrator {
                         follow,
                     ) * sample_weight;
 
+                    batch_sum_sample_weight += sample_weight;
                     actual_samples += 1;
+                    
                 }
 
-                stats.push(batch_color, batch_sum_sample_weight);
+                stats.push(batch_color/batch_sum_sample_weight, batch_sum_sample_weight);
 
                 if b > config.min_sample_batches {
-                    //log::info!("var {}, check {}", stats.interval(), 0.05 * stats.mean().illuminance());
+                    //log::info!("var {}, check {}", stats.interval(), 0.20 * stats.mean().illuminance());
 
                     if stats.interval() < 0.05 * stats.mean().illuminance() {
                         break 'batch;
